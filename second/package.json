@@ -1,14 +1,10 @@
 {
-  "name": "sbackend",
+  "name": "second",
   "version": "1.0.0",
-  "description": "a backend",
-  "keywords": [
-    "javascript",
-    "backend"
-  ],
+  "description": "",
   "license": "ISC",
-  "author": "jaimin",
-  "type": "module",
+  "author": "",
+  "type": "commonjs",
   "main": "index.js",
   "scripts": {
     "dev": "nodemon src/index.js"
