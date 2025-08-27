@@ -15,5 +15,9 @@
   },
   "devDependencies": {
     "nodemon": "^3.1.10"
+  },
+  "dependencies": {
+    "cloudinary": "^2.7.0",
+    "multer": "^2.0.2"
   }
 }
