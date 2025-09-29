@@ -67,7 +67,7 @@ const registerUser = asyncHandler(async (req, res) => {
     if (!avatar) {
         console.log(req.files)
         console.log("Absolute path:", path.resolve(req.files.avatar[0].path));
-        throw new ApiError(400, "avatar is fucking required")
+        throw new ApiError(400, "avatar is required")
     }
 
     const user = await User.create({
