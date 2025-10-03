@@ -65,7 +65,7 @@ const toggleTweetLike = asyncHandler(async (req, res) => {
         await Like.findByIdAndDelete(existingLike._id)
         return res
             .status(200)
-            .json(new ApiResponse(200, null, "Tweet unliked successfully"))
+            .json(new ApiResponse(200, null, "Tweet unLiked successfully"))
     }
 
     const newLike = await Like.create({
