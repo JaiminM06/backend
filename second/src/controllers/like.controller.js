@@ -12,7 +12,7 @@ const toggleVideoLike = asyncHandler(async (req, res) => {
         likedBy:req.user._id
     })
     if(exists){
-        await Like.findByIdAndDelete(existingLike._id)
+        await Like.findByIdAndDelete(exists._id)
         return res
             .status(200)
             .json(new ApiResponse(200, null, "Video unliked successfully"))
@@ -36,7 +36,7 @@ const toggleCommentLike = asyncHandler(async (req, res) => {
     })
 
     if (exists) {
-        await Like.findByIdAndDelete(existingLike._id)
+        await Like.findByIdAndDelete(exists._id)
         return res
             .status(200)
             .json(new ApiResponse(200, null, "Comment unliked successfully"))
@@ -56,13 +56,13 @@ const toggleCommentLike = asyncHandler(async (req, res) => {
 const toggleTweetLike = asyncHandler(async (req, res) => {
     const {tweetId} = req.params
     //TODO: toggle like on tweet
-    const existingLike = await Like.findOne({
+    const exists = await Like.findOne({
         tweet: tweetId,
         likedBy: req.user._id
     })
 
     if (existingLike) {
-        await Like.findByIdAndDelete(existingLike._id)
+        await Like.findByIdAndDelete(exists._id)
         return res
             .status(200)
             .json(new ApiResponse(200, null, "Tweet unLiked successfully"))
