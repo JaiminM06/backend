@@ -15,7 +15,7 @@ function Login() {
         password,
       });
       alert("Login successful!");
-      navigate("/");
+      navigate("/Dashboard");
     } catch (err) {
       alert(err.response?.data?.message || "Invalid credentials");
     }
