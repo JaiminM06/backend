@@ -16,7 +16,7 @@ function Login() {
         { withCredentials: true }
       );
       alert("Login successful!");
-      navigate("/Home");
+      navigate("/Home/feed");
     } catch (err) {
       alert(err.response?.data?.message || "Invalid credentials");
     }

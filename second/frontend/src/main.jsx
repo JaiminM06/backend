@@ -13,6 +13,7 @@ import VideoPlayer from './components/Videos/videoPlayer.jsx'
 import UserPage from './components/UserPage/Userpage.jsx'
 import ManageVideos from './components/Videos/ManageVideos.jsx'
 import ManageAccount from './components/UserPage/ManageAccount.jsx'
+import Feed from './components/Videos/feed.jsx'   
 
 const router= createBrowserRouter(
   createRoutesFromElements(
@@ -21,6 +22,7 @@ const router= createBrowserRouter(
       <Route path='/Login' element={<Login/>}/>
       <Route path='/Register' element={<Register/>}/>
       <Route path='/Home' element={<Layout/>}>
+        <Route path='feed' element={<Feed/>}/>
         <Route path='getVideos'element={<UserPage/>}/>
         <Route path=':id' element={<VideoPlayer/>}/>
         <Route path='user' element={<UserPage/>}/>

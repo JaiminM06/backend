@@ -5,7 +5,22 @@ import {ApiError} from "../utils/ApiError.js"
 import {ApiResponse} from "../utils/ApiResponse.js"
 import {asyncHandler} from "../utils/asyncHandler.js"
 
+const subscriptionStatus = async (req, res) => {
+    const {channelId} = req.params      
 
+    if(!isValidObjectId(channelId)){
+        throw new ApiError(400, "Invalid Channel ID")
+    }
+    const isSubscribed = await Subscription.findOne(
+        {
+            subscriber:req.user._id,        
+            channel:channelId
+        }
+    )
+    return res
+    .status(200)
+    .json(new ApiResponse(200,{isSubscribed: !!isSubscribed},"Subscription status fetched successfully"))
+}
 const toggleSubscription = asyncHandler(async (req, res) => {
     const {channelId} = req.params
     // TODO: toggle subscription
@@ -37,7 +52,7 @@ const getUserChannelSubscribers = asyncHandler(async (req, res) => {
     const {channelId} = req.params
     const subscriberList= await Subscription.find(
         {
-            channel:channelId
+            channel:new mongoose.Types.ObjectId(channelId)
         }
     )
 
@@ -63,5 +78,6 @@ const getSubscribedChannels = asyncHandler(async (req, res) => {
 export {
     toggleSubscription,
     getUserChannelSubscribers,
-    getSubscribedChannels
+    getSubscribedChannels,
+    subscriptionStatus
 }

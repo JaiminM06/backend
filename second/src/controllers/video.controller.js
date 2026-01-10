@@ -7,6 +7,17 @@ import {asyncHandler} from "../utils/asyncHandler.js"
 import {uploadOnCloudinary} from "../utils/cloudinary.js"
 
 
+const getInfiniteHomeFeed = asyncHandler(async (req, res) => {
+    const videos = await Video.find()
+        .sort({ createdAt: -1 })   
+        .populate("owner", "username")
+
+    return res
+        .status(200)
+        .json(new ApiResponse(200, videos, "videos fetched Successfully"))
+})
+
+
 const getAllVideos = asyncHandler(async (req, res) => {
     // const { page = 1, limit = 10, query, sortBy, sortType, userId } = req.query
     //TODO: get all videos based on query, sort, pagination
@@ -144,5 +155,6 @@ export {
     getVideoById,
     updateVideo,
     deleteVideo,
-    togglePublishStatus
+    togglePublishStatus,
+    getInfiniteHomeFeed
 }

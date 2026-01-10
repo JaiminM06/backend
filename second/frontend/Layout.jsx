@@ -187,16 +187,34 @@
 // }
 
 
-import { useState } from "react";
+import { useState,useEffect } from "react";
 import { Menu, Search, Bell, User } from "lucide-react";
 import { Outlet } from "react-router-dom";
 import { NavLink } from "react-router-dom";
 import { useNavigate } from "react-router-dom";
+import axios from "axios";  
 
 export default function Layout() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const navigate = useNavigate();
+    const [videos, setVideos] = useState([]);
 
+  useEffect(() => {
+    const fetchVideos = async () => {
+      try {
+        
+        const videosRes = await axios.get(
+          `http://localhost:8000/api/v1/videos/feed`,
+          { withCredentials: true }
+        );
+        setVideos(videosRes.data.data || []);
+      } catch (err) {
+        console.error("Error loading videos:", err);
+      }
+    };
+
+    fetchVideos();
+  }, []);
   const toggleSidebar = () => {
     setSidebarOpen(!sidebarOpen);
   };
@@ -226,7 +244,7 @@ export default function Layout() {
         {/* Navigation */}
         <nav className="p-4 space-y-2 flex-1 min-w-[256px] md:min-w-0 overflow-y-auto">
           <NavLink
-            to="/Home"
+            to="/Home/feed"
             className={({ isActive }) =>
               `flex items-center gap-3 p-3 rounded-lg transition-colors ${
                 isActive
@@ -238,6 +256,7 @@ export default function Layout() {
             <span>🏠</span>
             <span className={`${!sidebarOpen && 'md:hidden'}`}>Home</span>
           </NavLink>
+          
           
           <NavLink
             to="uploadVideo"
@@ -291,6 +310,7 @@ export default function Layout() {
             <User onClick={()=>{navigate('/Home/user')}}/>
           </div>
         </header>
+        
         <main className="overflow-y-auto">
           <Outlet/></main>   
       </div>

@@ -95,7 +95,6 @@ function UserPage() {
       {/* User Info */}
 <div
   className="bg-white rounded-2xl shadow-lg p-6 mb-8 flex flex-col md:flex-row items-center md:items-start gap-6 bg-cover bg-center"
-  style={{ backgroundImage: `url(${userProfile.coverImage})` }}
 >  {/* Avatar */}
   <img
     src={user.avatar}

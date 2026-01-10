@@ -1,6 +1,9 @@
 import { NavLink, Outlet } from "react-router-dom";
 
+
+
 function Home() {
+  
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-500 to-indigo-700 flex flex-col items-center justify-center text-white">
       <div className="bg-white text-gray-800 shadow-2xl rounded-2xl p-10 w-full max-w-lg text-center">

@@ -6,13 +6,14 @@ import {
     publishAVideo,
     togglePublishStatus,
     updateVideo,
+    getInfiniteHomeFeed
 } from "../controllers/video.controller.js"
 import {verifyJWT} from "../middlewares/auth.middleware.js"
 import {upload} from "../middlewares/multer.middleware.js"
 
 const router = Router();
 router.use(verifyJWT); // Apply verifyJWT middleware to all routes in this file
-
+router.route("/feed").get(getInfiniteHomeFeed);
 router
     .route("/")
     .get(getAllVideos)
@@ -36,6 +37,7 @@ router
     .get(getVideoById)
     .delete(deleteVideo)
     .patch(upload.single("thumbnail"), updateVideo);
+
 
 router.route("/toggle/publish/:videoId").patch(togglePublishStatus);
 
