@@ -1,12 +1,10 @@
 import express from "express"
 import cors from "cors"
 import cookieParser from "cookie-parser"
-import path from "path"
-
 const app = express();
 
 app.use(cors({
-    origin: process.env.CORS_ORIGIN || "http://localhost:5173",
+    origin: "http://localhost:5173",
     credentials: true
 }))
 
@@ -15,8 +13,6 @@ app.use(express.urlencoded({ extended: true, limit: "16kb" }))
 
 app.use(express.static("public"))
 app.use(cookieParser())
-
-// Remove temporary GET / route since frontend will handle it
 
 //routes
 
@@ -41,13 +37,7 @@ app.use("/api/v1/comments", commentRouter)
 // app.use("/api/v1/playlist", playlistRouter)
 // app.use("/api/v1/dashboard", dashboardRouter)
 
-// Serve frontend code
-const _dirname = path.resolve();
-app.use(express.static(path.join(_dirname, "/frontend/dist")));
-
-app.get(/(.*)/, (req, res) => {
-    res.sendFile(path.resolve(_dirname, "frontend", "dist", "index.html"));
-});
+//http://localhost:8000/api/users/register     
 
 import { ApiError } from "./utils/ApiError.js";
 

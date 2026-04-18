@@ -7,9 +7,7 @@
   "type": "module",
   "main": "index.js",
   "scripts": {
-    "dev": "nodemon -r dotenv/config --experimental-json-modules src/index.js",
-    "start": "node src/index.js",
-    "build": "npm install --prefix frontend && npm run build --prefix frontend"
+    "dev": "nodemon -r dotenv/config --experimental-json-modules src/index.js"
   },
   "devDependencies": {
     "nodemon": "^3.1.10",
@@ -17,7 +15,6 @@
   },
   "dependencies": {
     "bcrypt": "^6.0.0",
-    "cloudinary": "^2.9.0",
     "cookie-parser": "^1.4.7",
     "cors": "^2.8.5",
     "dotenv": "^17.2.1",
@@ -25,7 +22,6 @@
     "jsonwebtoken": "^9.0.2",
     "mogoose": "^0.0.1-security",
     "mongoose": "^8.17.2",
-    "mongoose-aggregate-paginate-v2": "^1.1.4",
-    "multer": "^2.1.1"
+    "mongoose-aggregate-paginate-v2": "^1.1.4"
   }
 }
