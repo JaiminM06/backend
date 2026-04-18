@@ -13,7 +13,7 @@ function UpdateVideo({ videoId, goBack }) {
   useEffect(() => {
     const fetchVideo = async () => {
       try {
-        const res = await axios.get(`http://localhost:8000/api/v1/videos/${videoId}`, {
+        const res = await axios.get(`\${import.meta.env.VITE_API_URL || 'http://localhost:8000'}/api/v1/videos/${videoId}`, {
           withCredentials: true,
         });
         setVideo(res.data.data);
@@ -55,7 +55,7 @@ function UpdateVideo({ videoId, goBack }) {
     try {
       setLoading(true);
       await axios.patch(
-        `http://localhost:8000/api/v1/videos/${videoId}`,
+        `\${import.meta.env.VITE_API_URL || 'http://localhost:8000'}/api/v1/videos/${videoId}`,
         formData,
         { withCredentials: true, headers: { "Content-Type": "multipart/form-data" } }
       );

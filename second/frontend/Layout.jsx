@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Menu, Search, Bell, User, Home, Upload, Flame, Tv, Library, X, LogOut, Settings } from "lucide-react";
+import { Menu, Search, Bell, User, Home, Upload, Flame, Tv, Library, X, LogOut, Settings, Twitter } from "lucide-react";
 import { Outlet, NavLink, useNavigate } from "react-router-dom";
 import axios from "axios";
 
@@ -20,7 +20,7 @@ export default function Layout() {
   useEffect(() => {
     const fetchUser = async () => {
       try {
-        const res = await axios.get("http://localhost:8000/api/v1/users/current-user", {
+        const res = await axios.get(`\${import.meta.env.VITE_API_URL || 'http://localhost:8000'}/api/v1/users/current-user`, {
           withCredentials: true,
         });
         setUser(res.data.data);
@@ -70,10 +70,10 @@ export default function Layout() {
             >
               <Menu size={20} />
             </button>
-            <span className={`font-bold text-lg text-slate-900 md:hidden`}>MyTube</span>
+            <span className={`font-bold text-lg text-slate-900 md:hidden`}>MediaVerse</span>
           </div>
             <span className={`font-bold text-xl tracking-tight text-slate-900 overflow-hidden transition-all duration-300 ${isExpanded ? "w-auto opacity-100" : "w-0 opacity-0 hidden"}`}>
-              MyTube
+              MediaVerse
             </span>
           </div>
           <button
@@ -148,21 +148,31 @@ export default function Layout() {
           
 
           {/* Search Bar - Better Centered */}
-          <div className="hidden md:flex flex-1 max-w-2xl mx-auto px-8 relative">
-            <div className="w-full relative group">
-              <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
-                <Search size={18} className="text-slate-400 group-focus-within:text-brand-500 transition-colors" />
+          <div className="hidden md:flex flex-1 max-w-2xl mx-auto px-4 md:px-8 relative">
+            <div className="flex w-full group shadow-sm hover:shadow-md transition-shadow duration-300 rounded-full">
+              <div className="relative w-full flex items-center">
+                <input
+                  type="text"
+                  placeholder="Search videos, channels..."
+                  className="w-full bg-white text-slate-900 px-5 py-2.5 rounded-l-full focus:outline-none focus:ring-1 focus:ring-brand-500 focus:border-brand-500 transition-all border border-slate-200 placeholder-slate-400"
+                />
               </div>
-              <input
-                type="text"
-                placeholder="Search videos, channels..."
-                className="w-full bg-slate-100 text-slate-900 pl-11 pr-4 py-2.5 rounded-full focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:bg-white transition-all border border-transparent focus:border-brand-200 placeholder-slate-400 shadow-sm"
-              />
+              <button className="bg-slate-100 hover:bg-slate-200 border border-slate-200 border-l-0 px-6 py-2.5 rounded-r-full transition-colors flex items-center justify-center">
+                <Search size={20} className="text-slate-600" />
+              </button>
             </div>
           </div>
 
           {/* Right Actions */}
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2 md:gap-3">
+            <button
+              onClick={() => alert("Twitter mode is coming soon!")}
+              className="flex items-center gap-1.5 md:gap-2 px-3 py-1.5 md:px-4 md:py-2 bg-[#1DA1F2]/10 text-[#1DA1F2] border border-[#1DA1F2]/20 rounded-full hover:bg-[#1DA1F2]/20 transition-all shadow-sm"
+              title="Coming Soon"
+            >
+              <Twitter size={16} className="md:w-4 md:h-4 shrink-0" />
+              <span className="text-xs md:text-sm font-semibold whitespace-nowrap hidden sm:inline-block">Switch to Twitter</span>
+            </button>
             <button className="p-2.5 rounded-full hover:bg-slate-100 text-slate-600 relative group transition-colors">
               <Bell size={20} className="group-hover:text-slate-900" />
               <span className="absolute top-2 right-2.5 w-2 h-2 bg-red-500 rounded-full border-2 border-white"></span>
@@ -192,7 +202,7 @@ export default function Layout() {
         </header>
 
         {/* Scrollable Content */}
-        <main className="flex-1 overflow-y-auto bg-gray-50 scrollbar-thin scrollbar-thumb-slate-300">
+        <main className="flex-1 overflow-y-auto bg-gray-50 scrollbar-thin scrollbar-thumb-slate-300 p-4 md:p-6 lg:p-8">
           <Outlet />
         </main>
       </div>

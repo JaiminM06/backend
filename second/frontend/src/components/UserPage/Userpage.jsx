@@ -14,19 +14,19 @@ function UserPage() {
     const fetchUserData = async () => {
       try {
         // Fetch current user details
-        const userRes = await axios.get("http://localhost:8000/api/v1/users/current-user", {
+        const userRes = await axios.get(`\${import.meta.env.VITE_API_URL || 'http://localhost:8000'}/api/v1/users/current-user`, {
           withCredentials: true,
         });
         setUser(userRes.data.data);
 
-        const profile = await axios.get(`http://localhost:8000/api/v1/users/c/${userRes.data.data.username}`, {
+        const profile = await axios.get(`\${import.meta.env.VITE_API_URL || 'http://localhost:8000'}/api/v1/users/c/${userRes.data.data.username}`, {
           withCredentials: true,
         });
         setUserProfile(profile.data.data);
 
         // Fetch user's videos
         const videosRes = await axios.get(
-          `http://localhost:8000/api/v1/videos/`,
+          `\${import.meta.env.VITE_API_URL || 'http://localhost:8000'}/api/v1/videos/`,
           { withCredentials: true }
         );
         setVideos(videosRes.data.data || []);
@@ -42,7 +42,7 @@ function UserPage() {
 
   const handleLogout = async () => {
     try {
-      await axios.post("http://localhost:8000/api/v1/users/logout", {}, {
+      await axios.post(`\${import.meta.env.VITE_API_URL || 'http://localhost:8000'}/api/v1/users/logout`, {}, {
         withCredentials: true,
       });
       navigate("/");

@@ -13,7 +13,7 @@ function ManageVideos() {
     useEffect(() => {
         const fetchVideos = async () => {
             try {
-                const res = await axios.get("http://localhost:8000/api/v1/videos/", {
+                const res = await axios.get(`\${import.meta.env.VITE_API_URL || 'http://localhost:8000'}/api/v1/videos/`, {
                     withCredentials: true,
                 });
                 setVideos(res.data.data || []);
@@ -32,7 +32,7 @@ function ManageVideos() {
         if (!confirmDelete) return;
 
         try {
-            await axios.delete(`http://localhost:8000/api/v1/videos/${videoId}`, {
+            await axios.delete(`\${import.meta.env.VITE_API_URL || 'http://localhost:8000'}/api/v1/videos/${videoId}`, {
                 withCredentials: true,
             });
             // Show a toast or clearer feedback here ideally

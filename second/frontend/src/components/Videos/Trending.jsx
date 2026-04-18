@@ -12,7 +12,7 @@ function Trending() {
         const fetchTrending = async () => {
             try {
                 // Fetch videos and sort by views locally since we might not have a dedicated trending endpoint
-                const res = await axios.get("http://localhost:8000/api/v1/videos/", {
+                const res = await axios.get(`\${import.meta.env.VITE_API_URL || 'http://localhost:8000'}/api/v1/videos/`, {
                     withCredentials: true,
                 });
                 const allVideos = res.data.data || [];

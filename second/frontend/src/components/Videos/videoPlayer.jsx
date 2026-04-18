@@ -23,7 +23,7 @@ export default function VideoPlayer() {
   useEffect(() => {
     const fetchVideo = async () => {
       try {
-        const res = await axios.get(`http://localhost:8000/api/v1/videos/${id}`, {
+        const res = await axios.get(`\${import.meta.env.VITE_API_URL || 'http://localhost:8000'}/api/v1/videos/${id}`, {
           withCredentials: true,
         });
         setVideo(res.data.data);
@@ -31,7 +31,7 @@ export default function VideoPlayer() {
         // Fetch subscription status
         try {
           const subscriptionRes = await axios.get(
-            `http://localhost:8000/api/v1/subscriptions/status/${res.data.data.owner._id}`,
+            `\${import.meta.env.VITE_API_URL || 'http://localhost:8000'}/api/v1/subscriptions/status/${res.data.data.owner._id}`,
             { withCredentials: true }
           );
           setIsSubscribed(subscriptionRes.data.data.isSubscribed);
@@ -54,14 +54,14 @@ export default function VideoPlayer() {
     const fetchData = async () => {
       try {
         // Fetch Avatar
-        const userRes = await axios.get(`http://localhost:8000/api/v1/users/${video.owner._id}`, {
+        const userRes = await axios.get(`\${import.meta.env.VITE_API_URL || 'http://localhost:8000'}/api/v1/users/${video.owner._id}`, {
           withCredentials: true,
         });
         setAvatar(userRes.data.data.avatar);
 
         // Fetch Subscribers
         const subRes = await axios.get(
-          `http://localhost:8000/api/v1/subscriptions/u/${video.owner._id}`,
+          `\${import.meta.env.VITE_API_URL || 'http://localhost:8000'}/api/v1/subscriptions/u/${video.owner._id}`,
           { withCredentials: true }
         );
         setSubscribers(subRes.data.data.length);
@@ -77,7 +77,7 @@ export default function VideoPlayer() {
     const fetchComments = async () => {
       try {
         const res = await axios.get(
-          `http://localhost:8000/api/v1/comments/${id}`,
+          `\${import.meta.env.VITE_API_URL || 'http://localhost:8000'}/api/v1/comments/${id}`,
           { withCredentials: true }
         );
         setComments(Array.isArray(res.data.data) ? res.data.data : []);
@@ -101,7 +101,7 @@ export default function VideoPlayer() {
   const handleSubscribe = async () => {
     try {
       await axios.post(
-        `http://localhost:8000/api/v1/subscriptions/c/${video.owner._id}`,
+        `\${import.meta.env.VITE_API_URL || 'http://localhost:8000'}/api/v1/subscriptions/c/${video.owner._id}`,
         {},
         { withCredentials: true }
       );
@@ -117,7 +117,7 @@ export default function VideoPlayer() {
 
     try {
       const res = await axios.post(
-        `http://localhost:8000/api/v1/comments/${id}`,
+        `\${import.meta.env.VITE_API_URL || 'http://localhost:8000'}/api/v1/comments/${id}`,
         { content: newComment },
         { withCredentials: true }
       );
@@ -134,7 +134,7 @@ export default function VideoPlayer() {
 
     try {
       const res = await axios.post(
-        `http://localhost:8000/api/v1/comments/${commentId}/reply`,
+        `\${import.meta.env.VITE_API_URL || 'http://localhost:8000'}/api/v1/comments/${commentId}/reply`,
         { text: replyText },
         { withCredentials: true }
       );

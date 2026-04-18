@@ -30,7 +30,7 @@ export default function VideoUpload() {
     try {
       setUploading(true);
       const res = await axios.post(
-        "http://localhost:8000/api/v1/videos/",
+        `\${import.meta.env.VITE_API_URL || 'http://localhost:8000'}/api/v1/videos/`,
         formData,
         {
           headers: { "Content-Type": "multipart/form-data" },

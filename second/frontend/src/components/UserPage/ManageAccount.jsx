@@ -33,7 +33,7 @@ export default function ManageAccount() {
         try {
             setLoading(true);
             const res = await axios.post(
-                "http://localhost:8000/api/v1/users/change-password",
+                `\${import.meta.env.VITE_API_URL || 'http://localhost:8000'}/api/v1/users/change-password`,
                 { oldPassword: password, newPassword },
                 { withCredentials: true }
             );
@@ -62,7 +62,7 @@ export default function ManageAccount() {
         try {
             setLoading(true);
             const res = await axios.patch(
-                "http://localhost:8000/api/v1/users/update-account",
+                `\${import.meta.env.VITE_API_URL || 'http://localhost:8000'}/api/v1/users/update-account`,
                 details,
                 { withCredentials: true }
             );
@@ -89,7 +89,7 @@ export default function ManageAccount() {
             formData.append("avatar", avatar);
 
             const res = await axios.patch(
-                "http://localhost:8000/api/v1/users/avatar",
+                `\${import.meta.env.VITE_API_URL || 'http://localhost:8000'}/api/v1/users/avatar`,
                 formData,
                 { withCredentials: true, headers: { "Content-Type": "multipart/form-data" } }
             );
@@ -117,7 +117,7 @@ export default function ManageAccount() {
             formData.append("coverImage", cover);
 
             const res = await axios.patch(
-                "http://localhost:8000/api/v1/users/cover-Image",
+                `\${import.meta.env.VITE_API_URL || 'http://localhost:8000'}/api/v1/users/cover-Image`,
                 formData,
                 { withCredentials: true, headers: { "Content-Type": "multipart/form-data" } }
             );

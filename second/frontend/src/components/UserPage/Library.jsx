@@ -19,7 +19,7 @@ function Library() {
             try {
                 // Fetching all videos as a placeholder for now, to demonstrate UI.
                 // In real app: axios.get("/users/history"), axios.get("/likes")
-                const res = await axios.get("http://localhost:8000/api/v1/videos/", {
+                const res = await axios.get(`\${import.meta.env.VITE_API_URL || 'http://localhost:8000'}/api/v1/videos/`, {
                     withCredentials: true,
                 });
                 const all = res.data.data || [];
