@@ -1,13 +1,14 @@
 import { useState } from "react";
 import axios from "axios";
-import { Upload, CloudUpload, Film, Image as ImageIcon, CheckCircle, AlertCircle, Loader2 } from "lucide-react";
+import { Upload, CloudUpload, Film, CheckCircle, AlertCircle, Loader2 } from "lucide-react";
 
 export default function VideoUpload() {
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
-  const [thumbnail, setThumbnail] = useState(null);
   const [videoFile, setVideoFile] = useState(null);
   const [uploading, setUploading] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState(0);
+  const [processingStatus, setProcessingStatus] = useState("");
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
 
@@ -15,39 +16,105 @@ export default function VideoUpload() {
     e.preventDefault();
     setError("");
     setMessage("");
+    setUploadProgress(0);
+    setProcessingStatus("");
 
     if (!title || !videoFile) {
       setError("Please provide a title and a video file.");
       return;
     }
 
-    const formData = new FormData();
-    formData.append("title", title);
-    formData.append("description", description);
-    formData.append("thumbnail", thumbnail);
-    formData.append("videoFile", videoFile);
-
     try {
       setUploading(true);
-      const res = await axios.post(
-        `${import.meta.env.VITE_API_URL || 'http://localhost:8000'}/api/v1/videos/`,
-        formData,
+      setProcessingStatus("Requesting upload permissions...");
+
+      // Determine content type with fallback for Windows file association gaps
+      let contentType = videoFile.type;
+      if (!contentType) {
+        const ext = videoFile.name.split('.').pop().toLowerCase();
+        if (ext === 'mp4') contentType = 'video/mp4';
+        else if (ext === 'webm') contentType = 'video/webm';
+        else if (ext === 'mov' || ext === 'qt') contentType = 'video/quicktime';
+      }
+
+      // 1. Get presigned URL from backend
+      const requestUrlRes = await axios.post(
+        `${import.meta.env.VITE_API_URL || 'http://localhost:8000'}/api/v1/upload/request-url`,
         {
-          headers: { "Content-Type": "multipart/form-data" },
-          withCredentials: true,
-        }
+          fileName: videoFile.name,
+          contentType: contentType || "video/mp4",
+          fileSize: videoFile.size,
+          title,
+          description,
+          tags: ["hls"]
+        },
+        { withCredentials: true }
       );
 
-      setMessage(res.data.message || "Video is ready to watch!");
-      // Reset form
-      setTitle("");
-      setDescription("");
-      setThumbnail(null);
-      setVideoFile(null);
+      const { uploadUrl, videoId } = requestUrlRes.data.data;
+      setProcessingStatus("Uploading video directly to AWS S3...");
+
+      // 2. Upload raw video file directly to AWS S3 via PUT
+      await axios.put(uploadUrl, videoFile, {
+        headers: {
+          "Content-Type": videoFile.type
+        },
+        onUploadProgress: (progressEvent) => {
+          const percentCompleted = Math.round(
+            (progressEvent.loaded * 100) / progressEvent.total
+          );
+          setUploadProgress(percentCompleted);
+        }
+      });
+
+      setUploadProgress(100);
+      setProcessingStatus("Queuing video in transcoding queue...");
+
+      // 3. Confirm upload on backend to start transcoding worker
+      await axios.post(
+        `${import.meta.env.VITE_API_URL || 'http://localhost:8000'}/api/v1/upload/confirm/${videoId}`,
+        {},
+        { withCredentials: true }
+      );
+
+      setProcessingStatus("Transcoding & generating HLS manifests (360p, 480p, 720p, 1080p)...");
+
+      // 4. Poll status until ready or failed
+      const pollInterval = setInterval(async () => {
+        try {
+          const statusRes = await axios.get(
+            `${import.meta.env.VITE_API_URL || 'http://localhost:8000'}/api/v1/upload/status/${videoId}`,
+            { withCredentials: true }
+          );
+          
+          const status = statusRes.data.data.processingStatus;
+          if (status === "ready") {
+            clearInterval(pollInterval);
+            setProcessingStatus("Ready");
+            setMessage("Video uploaded, processed, and ready for adaptive streaming!");
+            setUploading(false);
+            // Reset form
+            setTitle("");
+            setDescription("");
+            setVideoFile(null);
+            setUploadProgress(0);
+          } else if (status === "failed") {
+            clearInterval(pollInterval);
+            setProcessingStatus("Failed");
+            setError(statusRes.data.data.processingError || "Transcoding failed.");
+            setUploading(false);
+          }
+        } catch (pollErr) {
+          clearInterval(pollInterval);
+          console.error("Polling error:", pollErr);
+          setError("Failed to track video status, but processing is running.");
+          setUploading(false);
+        }
+      }, 3000);
+
     } catch (err) {
       console.error(err);
-      setError("Failed to upload video. Please try again.");
-    } finally {
+      setError(err.response?.data?.message || "Failed to upload video. Please try again.");
       setUploading(false);
     }
   };
@@ -57,9 +124,9 @@ export default function VideoUpload() {
       <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
         <div className="p-6 border-b border-slate-100 bg-gray-50/50">
           <h2 className="text-2xl font-bold text-slate-800 flex items-center gap-2">
-            <Upload className="text-brand-600" /> Upload Video
+            <Upload className="text-brand-600" /> Upload HLS Video
           </h2>
-          <p className="text-slate-500 mt-1">Share your content with the world</p>
+          <p className="text-slate-500 mt-1">Direct-to-S3 secure uploads with automated HLS transcoding</p>
         </div>
 
         <div className="p-8">
@@ -76,16 +143,38 @@ export default function VideoUpload() {
             </div>
           )}
 
-          <form onSubmit={handleUpload} className="space-y-8">
+          {uploading && (
+            <div className="mb-6 p-4 bg-brand-50 border border-brand-100 rounded-xl space-y-3">
+              <div className="flex justify-between items-center text-sm font-semibold text-brand-800">
+                <span className="flex items-center gap-2">
+                  <Loader2 size={16} className="animate-spin text-brand-600" />
+                  {processingStatus}
+                </span>
+                {uploadProgress > 0 && uploadProgress <= 100 && (
+                  <span className="text-brand-700">{uploadProgress}%</span>
+                )}
+              </div>
+              {uploadProgress > 0 && uploadProgress <= 100 && (
+                <div className="w-full bg-slate-200 rounded-full h-2 overflow-hidden">
+                  <div 
+                    className="bg-brand-600 h-2 rounded-full transition-all duration-300" 
+                    style={{ width: `${uploadProgress}%` }}
+                  />
+                </div>
+              )}
+            </div>
+          )}
 
+          <form onSubmit={handleUpload} className="space-y-8">
             {/* Video File Input */}
             <div>
               <label className="block text-sm font-medium text-slate-700 mb-2">Video File</label>
               <div className="relative group">
                 <input
                   type="file"
-                  accept="video/*"
+                  accept="video/mp4,video/webm,video/quicktime"
                   id="video-upload"
+                  disabled={uploading}
                   onChange={(e) => setVideoFile(e.target.files[0])}
                   className="hidden"
                 />
@@ -108,74 +197,36 @@ export default function VideoUpload() {
                         <CloudUpload size={32} />
                       </div>
                       <p className="text-slate-700 font-medium text-lg">Drag and drop video files to upload</p>
-                      <p className="text-slate-400 text-sm mt-1">or click to browse files</p>
+                      <p className="text-slate-400 text-sm mt-1">Supports MP4, WEBM, and MOV (Max 500MB)</p>
                     </div>
                   )}
                 </label>
               </div>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-              {/* Left Column: Metadata */}
-              <div className="md:col-span-2 space-y-6">
-                <div className="space-y-1">
-                  <label className="text-sm font-medium text-slate-700">Video Title</label>
-                  <input
-                    type="text"
-                    placeholder="Give your video a catchy title"
-                    value={title}
-                    onChange={(e) => setTitle(e.target.value)}
-                    className="w-full px-4 py-3 border border-slate-200 rounded-xl focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500 outline-none transition-all placeholder:text-slate-400"
-                  />
-                </div>
-
-                <div className="space-y-1">
-                  <label className="text-sm font-medium text-slate-700">Description</label>
-                  <textarea
-                    placeholder="Tell viewers about your video..."
-                    value={description}
-                    onChange={(e) => setDescription(e.target.value)}
-                    rows={6}
-                    className="w-full px-4 py-3 border border-slate-200 rounded-xl focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500 outline-none transition-all placeholder:text-slate-400 resize-none"
-                  />
-                </div>
+            <div className="space-y-6">
+              <div className="space-y-1">
+                <label className="text-sm font-medium text-slate-700">Video Title</label>
+                <input
+                  type="text"
+                  placeholder="Give your video a catchy title"
+                  value={title}
+                  disabled={uploading}
+                  onChange={(e) => setTitle(e.target.value)}
+                  className="w-full px-4 py-3 border border-slate-200 rounded-xl focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500 outline-none transition-all placeholder:text-slate-400"
+                />
               </div>
 
-              {/* Right Column: Thumbnail */}
-              <div className="space-y-4">
-                <label className="text-sm font-medium text-slate-700">Thumbnail</label>
-                <div className="relative">
-                  <input
-                    type="file"
-                    accept="image/*"
-                    id="thumbnail-upload"
-                    onChange={(e) => setThumbnail(e.target.files[0])}
-                    className="hidden"
-                  />
-                  <label
-                    htmlFor="thumbnail-upload"
-                    className={`flex flex-col items-center justify-center aspect-video border-2 border-dashed rounded-xl transition-all cursor-pointer overflow-hidden relative
-                            ${thumbnail ? 'border-transparent' : 'border-slate-300 hover:border-brand-400 bg-slate-50 hover:bg-brand-50/30'}`}
-                  >
-                    {thumbnail ? (
-                      <div className="relative w-full h-full group">
-                        <img
-                          src={URL.createObjectURL(thumbnail)}
-                          alt="Thumbnail"
-                          className="w-full h-full object-cover"
-                        />
-                        <div className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
-                          <span className="text-white text-sm font-medium">Change Image</span>
-                        </div>
-                      </div>
-                    ) : (
-                      <div className="text-center p-4">
-                        <ImageIcon size={24} className="mx-auto text-slate-400 mb-2" />
-                        <span className="text-xs text-slate-500">Upload Thumbnail</span>
-                      </div>
-                    )}
-                  </label>
-                </div>
+              <div className="space-y-1">
+                <label className="text-sm font-medium text-slate-700">Description</label>
+                <textarea
+                  placeholder="Tell viewers about your video..."
+                  value={description}
+                  disabled={uploading}
+                  onChange={(e) => setDescription(e.target.value)}
+                  rows={6}
+                  className="w-full px-4 py-3 border border-slate-200 rounded-xl focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500 outline-none transition-all placeholder:text-slate-400 resize-none"
+                />
               </div>
             </div>
 
@@ -188,10 +239,10 @@ export default function VideoUpload() {
                 {uploading ? (
                   <>
                     <Loader2 size={20} className="animate-spin" />
-                    Uploading Video...
+                    Uploading...
                   </>
                 ) : (
-                  "Upload Video"
+                  "Upload & Process"
                 )}
               </button>
             </div>

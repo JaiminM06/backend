@@ -1,7 +1,8 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useParams } from "react-router-dom";
 import axios from "axios";
 import { ThumbsUp, ThumbsDown, Share2, Bookmark, Flag, Send, User, MessageCircle } from "lucide-react";
+import Hls from "hls.js";
 
 export default function VideoPlayer() {
   const { id } = useParams();
@@ -13,6 +14,37 @@ export default function VideoPlayer() {
   const [avatar, setAvatar] = useState(null);
   const [subscribers, setSubscribers] = useState(0);
   const [isSubscribed, setIsSubscribed] = useState(false);
+  const videoRef = useRef(null);
+
+  // Setup Hls.js playback for M3U8 adaptive streams
+  useEffect(() => {
+    if (!video || !videoRef.current) return;
+
+    const videoElement = videoRef.current;
+    let hls;
+
+    if (video.videoFile && video.videoFile.includes(".m3u8")) {
+      if (Hls.isSupported()) {
+        hls = new Hls({
+          maxMaxBufferLength: 10
+        });
+        hls.loadSource(video.videoFile);
+        hls.attachMedia(videoElement);
+      } else if (videoElement.canPlayType("application/vnd.apple.mpegurl")) {
+        // Native support (Safari, iOS)
+        videoElement.src = video.videoFile;
+      }
+    } else if (video.videoFile) {
+      // Fallback for legacy direct MP4 video sources
+      videoElement.src = video.videoFile;
+    }
+
+    return () => {
+      if (hls) {
+        hls.destroy();
+      }
+    };
+  }, [video]);
 
   // COMMENTS STATE
   const [comments, setComments] = useState([]);
@@ -170,7 +202,7 @@ export default function VideoPlayer() {
         {/* Video Player Container */}
         <div className="rounded-2xl overflow-hidden shadow-xl bg-black aspect-video relative group">
           <video
-            src={video.videoFile}
+            ref={videoRef}
             poster={video.thumbnail}
             controls
             className="w-full h-full object-contain"
