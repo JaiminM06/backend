@@ -4,6 +4,7 @@ import { Subscription } from "../models/subscription.model.js"
 import {ApiError} from "../utils/ApiError.js"
 import {ApiResponse} from "../utils/ApiResponse.js"
 import {asyncHandler} from "../utils/asyncHandler.js"
+import { sendNotification } from "../services/notification.service.js"
 
 const subscriptionStatus = async (req, res) => {
     const {channelId} = req.params      
@@ -39,9 +40,22 @@ const toggleSubscription = asyncHandler(async (req, res) => {
     const subscribed= await Subscription.create({
         subscriber:req.user._id,
         channel:channelId
+    })
+
+    // Send real-time notification
+    try {
+        await sendNotification({
+            recipientId: channelId,
+            senderId: req.user._id,
+            type: 'new_subscriber',
+            referenceId: req.user._id,
+            referenceModel: null,
+            message: `${req.user.username} subscribed to your channel`
+        });
+    } catch (notificationError) {
+        console.error("Failed to send subscription notification:", notificationError.message);
     }
-        
-    )
+
     return res
     .status(200)
     .json(new ApiResponse(200,subscribed,"Channel Subscribed Successfully"))

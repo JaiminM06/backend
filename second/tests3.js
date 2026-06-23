@@ -1,26 +1,77 @@
-import { S3Client, ListBucketsCommand } from "@aws-sdk/client-s3";
-import dotenv from "dotenv";
-
-dotenv.config();
+import { io } from "socket.io-client";
 
 
-const s3 = new S3Client({
-    region: process.env.AWS_REGION,
-    credentials:{
-        accessKeyId:process.env.AWS_ACCESS_KEY_ID,
-        secretAccessKey:process.env.AWS_SECRET_ACCESS_KEY
+const socket = io(
+    "http://localhost:8000",
+    {
+        transports:["websocket"]
     }
+);
+
+
+socket.on("connect",()=>{
+
+    console.log(
+        "Client A connected:",
+        socket.id
+    );
+
+
+    socket.emit(
+        "join_video_room",
+        {
+            videoId:"6a39515cf0b3dc98056bd468"
+        }
+    );
+
 });
 
 
-const test = async()=>{
+socket.on(
+    "viewer_count_update",
+    (data)=>{
 
-    const data = await s3.send(
-        new ListBucketsCommand({})
+        console.log(
+            "Viewer count:",
+            data
+        );
+
+    }
+);
+
+socket.on(
+    "new_comment",
+    (data)=>{
+
+        console.log(
+            "🔥 New Comment Received:",
+            data
+        );
+
+    }
+);
+
+
+
+socket.onAny((event,data)=>{
+
+    console.log(
+        "EVENT:",
+        event,
+        data
     );
 
-    console.log(data.Buckets);
-};
+});
 
 
-test();
+socket.on(
+    "user_typing",
+    (data)=>{
+
+        console.log(
+            "⌨️ Someone typing:",
+            data
+        );
+
+    }
+);

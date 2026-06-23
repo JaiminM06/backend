@@ -4,6 +4,7 @@ import { ApiError } from "../utils/ApiError.js"
 import { ApiResponse } from "../utils/ApiResponse.js"
 import { asyncHandler } from "../utils/asyncHandler.js"
 import { Video } from "../models/video.model.js"
+import { getIO } from "../config/socket.js"
 
 const getVideoComments = asyncHandler(async (req, res) => {
     const { videoId } = req.params;
@@ -39,6 +40,17 @@ const addComment = asyncHandler(async (req, res) => {
             owner: req.user._id
         }
     )
+
+    // Populate owner info for WebSocket real-time delivery
+    const savedComment = await Comment.findById(comment._id).populate("owner", "username avatar")
+
+    try {
+        const io = getIO()
+        const roomKey = `video-${videoId}`
+        io.to(roomKey).emit("new_comment", { comment: savedComment })
+    } catch (socketError) {
+        console.error("Failed to emit new_comment via socket:", socketError.message)
+    }
 
     return res
         .status(200)

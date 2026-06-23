@@ -9,6 +9,7 @@ import ffmpeg from "fluent-ffmpeg";
 import redisConnection from "../config/redis.js";
 import { Video } from "../models/video.model.js";
 import { s3Client, getCloudFrontUrl } from "../utils/s3.js";
+import { sendNotification } from "../services/notification.service.js";
 
 // Helper to resolve MIME type for HLS segments, playlist, and images
 const getContentType = (filename) => {
@@ -113,7 +114,7 @@ const RESOLUTIONS_CONFIG = [
 ];
 
 const videoProcessor = new Worker("video-processing", async (job) => {
-    const { videoId, s3Key } = job.data;
+    const { videoId, s3Key, userId } = job.data;
     const ext = path.extname(s3Key).substring(1) || "mp4";
     const localRawPath = path.join(os.tmpdir(), `${videoId}_raw.${ext}`);
     const baseTempDir = path.join(os.tmpdir(), videoId);
@@ -228,6 +229,22 @@ const videoProcessor = new Worker("video-processing", async (job) => {
         });
 
         console.log(`Video processing completed successfully for: ${videoId}`);
+
+        // Send real-time notification
+        try {
+            if (userId) {
+                await sendNotification({
+                    recipientId: userId,
+                    senderId: null,
+                    type: "video_ready",
+                    referenceId: videoId,
+                    referenceModel: "Video",
+                    message: "Your video has been processed and is ready to stream"
+                });
+            }
+        } catch (notificationError) {
+            console.error("Failed to send video ready notification:", notificationError.message);
+        }
 
     } catch (error) {
         console.error(`Error processing video ${videoId}:`, error.message);

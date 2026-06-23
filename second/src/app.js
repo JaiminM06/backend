@@ -24,6 +24,7 @@ import likeRouter from './routes/likes.routes.js'
 import playlistRouter from './routes/playlist.routes.js'
 import dashboardRouter from './routes/dashboard.routes.js'
 import uploadRouter from './routes/upload.routes.js'
+import notificationRouter from './routes/notification.routes.js'
 
 // Route declarations
 app.use("/api/v1/users", userRouter)
@@ -35,6 +36,7 @@ app.use("/api/v1/likes", likeRouter)
 app.use("/api/v1/playlists", playlistRouter)
 app.use("/api/v1/dashboard", dashboardRouter)
 app.use("/api/v1/upload", uploadRouter)
+app.use("/api/v1/notifications", notificationRouter)
 
 // Global error handler
 import { ApiError } from "./utils/ApiError.js";
