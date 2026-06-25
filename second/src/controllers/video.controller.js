@@ -114,7 +114,10 @@ const getVideoById = asyncHandler(async (req, res) => {
     const isOwner = req.user?._id && ownerId && ownerId.toString() === req.user._id.toString()
 
     if (!isOwner) {
-        const viewKey = `view:${videoId}:${req.user?._id || req.ip}`
+        const viewerIdentifier = req.user?._id 
+            ? `user:${req.user._id}` 
+            : `ip:${req.ip}`;
+        const viewKey = `view:${videoId}:${viewerIdentifier}`;
         const alreadyViewed = await redisClient.get(viewKey)
         if (!alreadyViewed) {
             // Increment video views
@@ -124,7 +127,7 @@ const getVideoById = asyncHandler(async (req, res) => {
                 { new: true }
             ).populate("owner", "username avatar")
 
-            await redisClient.setex(viewKey, 1800, '1') // 30 min TTL
+            await redisClient.setex(viewKey, 86400, '1') // 24 hour TTL
 
             // Sync views to Typesense (fire and forget) if the video is ready and published
             if (video.isPublished && video.processingStatus === "ready") {

@@ -90,10 +90,6 @@ export default function VideoPlayer() {
   const [newComment, setNewComment] = useState("");
 
   useEffect(() => {
-    currentTimeRef.current = 0;
-    durationRef.current = 0;
-    hasEndedRef.current = false;
-
     const fetchVideo = async () => {
       try {
         const res = await axios.get(`${import.meta.env.VITE_API_URL || 'http://localhost:8000'}/api/v1/videos/${id}`, {
@@ -246,6 +242,13 @@ export default function VideoPlayer() {
   };
 
   useEffect(() => {
+    const currentVideoId = id;
+    const currentSource = sourceRef.current;
+
+    currentTimeRef.current = 0;
+    durationRef.current = 0;
+    hasEndedRef.current = false;
+
     return () => {
       if (hasEndedRef.current) return;
 
@@ -257,10 +260,10 @@ export default function VideoPlayer() {
       axios.post(
         `${import.meta.env.VITE_API_URL || 'http://localhost:8000'}/api/v1/analytics/watch-event`,
         {
-          videoId: id,
+          videoId: currentVideoId,
           watchDuration,
           totalDuration,
-          source: sourceRef.current,
+          source: currentSource,
           deviceType: /Mobi/.test(navigator.userAgent) ? 'mobile' : 'desktop'
         },
         { withCredentials: true }

@@ -4,6 +4,7 @@ import { Video } from "../models/video.model.js";
 import { ApiError } from "../utils/ApiError.js";
 import { ApiResponse } from "../utils/ApiResponse.js";
 import { asyncHandler } from "../utils/asyncHandler.js";
+import redisClient from "../config/redis.js";
 import {
   getViewsOverTime,
   getSubscriberGrowth,
@@ -49,7 +50,28 @@ const recordWatchEvent = asyncHandler(async (req, res) => {
   // Compute completionRate
   const completionRate = Math.min(watchDuration / totalDuration, 1.0);
 
-  // Create VideoAnalytics document
+  // --- View deduplication (24-hour window per viewer) ---
+  // Extract client IP: x-forwarded-for for proxies/LBs, then socket fallback
+  const clientIp = req.headers['x-forwarded-for']?.split(',')[0]?.trim()
+    || req.socket.remoteAddress
+    || 'unknown';
+
+  // Build dedup key: userId for authenticated, IP for guests
+  const dedupKey = req.user
+    ? `view:${videoId}:user:${req.user._id}`
+    : `view:${videoId}:ip:${clientIp}`;
+
+  // Check Redis — if this viewer already has a record, skip analytics creation entirely
+  const alreadyViewed = await redisClient.get(dedupKey);
+
+  if (alreadyViewed) {
+    // View already counted in this 24h window — skip analytics creation
+    return res
+      .status(200)
+      .json(new ApiResponse(200, { deduplicated: true }, "View already counted in this window"));
+  }
+
+  // --- New unique view — create analytics record and increment view count ---
   await VideoAnalytics.create({
     video: videoId,
     viewer: req.user?._id || null,
@@ -60,9 +82,12 @@ const recordWatchEvent = asyncHandler(async (req, res) => {
     deviceType: finalDeviceType
   });
 
+  // Set Redis dedup key AFTER successful DB save (86400s = 24 hours)
+  await redisClient.set(dedupKey, '1', 'EX', 86400);
+
   return res
     .status(201)
-    .json(new ApiResponse(201, { message: 'Watch event recorded' }, "Watch event recorded successfully"));
+    .json(new ApiResponse(201, { deduplicated: false }, "Watch event recorded"));
 });
 
 // getDashboardSummary

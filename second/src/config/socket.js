@@ -26,12 +26,15 @@ export const initSocket = (server) => {
         console.warn("Redis client not initialized, skipping Socket.IO Redis adapter.");
     }
 
-    // JWT authentication middleware
+    // JWT authentication middleware — reads from cookie (httpOnly, sent via withCredentials)
     io.use(async (socket, next) => {
         try {
             const token =
                 socket.handshake.auth?.token ||
-                socket.handshake.headers?.authorization?.replace("Bearer ", "");
+                socket.handshake.headers?.cookie
+                    ?.split(';')
+                    .find(c => c.trim().startsWith('accessToken='))
+                    ?.split('=')[1];
 
             if (!token) return next(new Error("Authentication required"));
 

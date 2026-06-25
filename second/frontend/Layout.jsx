@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Menu, Search, User, Home, Upload, Flame, Tv, Library, X, LogOut, Settings, Twitter } from "lucide-react";
+import { Menu, Search, User, Home, Upload, Flame, Tv, Library, X, LogOut, Settings, Twitter, BarChart2 } from "lucide-react";
 import { Outlet, NavLink, useNavigate } from "react-router-dom";
 import axios from "axios";
 import useSocket from "./src/hooks/useSocket.js";
@@ -9,18 +9,33 @@ export default function Layout() {
   const [sidebarOpen, setSidebarOpen] = useState(false); // Mobile toggle
   const [isExpanded, setIsExpanded] = useState(true); // Desktop collapse state
   const [user, setUser] = useState(null);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [socketToken, setSocketToken] = useState(null);
   const navigate = useNavigate();
 
-  // Helper to read accessToken from cookies (if not httpOnly)
-  const getCookie = (name) => {
-    const matches = document.cookie.match(new RegExp(
-      "(?:^|; )" + name.replace(/([\.$?*|{}\(\)\[\]\\\/\+^])/g, '\\$1') + "=([^;]*)"
-    ));
-    return matches ? decodeURIComponent(matches[1]) : undefined;
-  };
+  useEffect(() => {
+    axios.get(
+      `${import.meta.env.VITE_API_URL || 'http://localhost:8000'}/api/v1/users/current-user`,
+      { withCredentials: true }
+    )
+    .then(res => {
+      setUser(res.data.data);
+      setSocketToken(res.data.data?._id || null);
+    })
+    .catch(() => {
+      setSocketToken(null);
+    });
+  }, []);
 
-  const accessToken = getCookie("accessToken") || "";
-  const socket = useSocket(accessToken);
+  const socket = useSocket(socketToken);
+
+  const handleSearch = (e) => {
+    e.preventDefault();
+    const q = searchQuery.trim();
+    if (!q) return;
+    navigate(`/Home/search?q=${encodeURIComponent(q)}`);
+    setSearchQuery('');
+  };
 
   const toggleSidebar = () => {
     if (window.innerWidth < 768) {
@@ -30,24 +45,11 @@ export default function Layout() {
     }
   };
 
-  useEffect(() => {
-    const fetchUser = async () => {
-      try {
-        const res = await axios.get(`${import.meta.env.VITE_API_URL || 'http://localhost:8000'}/api/v1/users/current-user`, {
-          withCredentials: true,
-        });
-        setUser(res.data.data);
-      } catch (error) {
-        console.error("Failed to fetch user in layout:", error);
-      }
-    };
-    fetchUser();
-  }, []);
-
   const navItems = [
     { to: "/Home/feed", icon: Home, label: "Home" },
     { to: "trending", icon: Flame, label: "Trending" },
     { to: "library", icon: Library, label: "Library" },
+    { to: "dashboard", icon: BarChart2, label: "Dashboard" },
     { to: "uploadVideo", icon: Upload, label: "Upload" },
     { to: "user", icon: User, label: "Profile" },
   ];
@@ -83,7 +85,6 @@ export default function Layout() {
             >
               <Menu size={20} />
             </button>
-            <span className={`font-bold text-lg text-slate-900 md:hidden`}>MediaVerse</span>
           </div>
             <span className={`font-bold text-xl tracking-tight text-slate-900 overflow-hidden transition-all duration-300 ${isExpanded ? "w-auto opacity-100" : "w-0 opacity-0 hidden"}`}>
               MediaVerse
@@ -162,18 +163,20 @@ export default function Layout() {
 
           {/* Search Bar - Better Centered */}
           <div className="hidden md:flex flex-1 max-w-2xl mx-auto px-4 md:px-8 relative">
-            <div className="flex w-full group shadow-sm hover:shadow-md transition-shadow duration-300 rounded-full">
+            <form onSubmit={handleSearch} className="flex w-full group shadow-sm hover:shadow-md transition-shadow duration-300 rounded-full">
               <div className="relative w-full flex items-center">
                 <input
                   type="text"
-                  placeholder="Search videos, channels..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  placeholder="Search videos, tweets..."
                   className="w-full bg-white text-slate-900 px-5 py-2.5 rounded-l-full focus:outline-none focus:ring-1 focus:ring-brand-500 focus:border-brand-500 transition-all border border-slate-200 placeholder-slate-400"
                 />
               </div>
-              <button className="bg-slate-100 hover:bg-slate-200 border border-slate-200 border-l-0 px-6 py-2.5 rounded-r-full transition-colors flex items-center justify-center">
+              <button type="submit" className="bg-slate-100 hover:bg-slate-200 border border-slate-200 border-l-0 px-6 py-2.5 rounded-r-full transition-colors flex items-center justify-center">
                 <Search size={20} className="text-slate-600" />
               </button>
-            </div>
+            </form>
           </div>
 
           {/* Right Actions */}

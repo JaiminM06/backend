@@ -103,9 +103,9 @@ const getTopVideos = async (videoIds, limit = 10) => {
     },
     {
       $addFields: {
-        totalViews: { $arrayElemAt: ['$analytics.totalViews', 0] },
-        avgCompletionRate: { $arrayElemAt: ['$analytics.avgCompletionRate', 0] },
-        avgWatchDuration: { $arrayElemAt: ['$analytics.avgWatchDuration', 0] }
+        totalViews: { $ifNull: [{ $arrayElemAt: ['$analytics.totalViews', 0] }, 0] },
+        avgCompletionRate: { $ifNull: [{ $arrayElemAt: ['$analytics.avgCompletionRate', 0] }, 0] },
+        avgWatchDuration: { $ifNull: [{ $arrayElemAt: ['$analytics.avgWatchDuration', 0] }, 0] }
       }
     },
     {
@@ -121,7 +121,7 @@ const getTopVideos = async (videoIds, limit = 10) => {
     },
     {
       $addFields: {
-        likeCount: { $arrayElemAt: ['$likes.count', 0] }
+        likeCount: { $ifNull: [{ $arrayElemAt: ['$likes.count', 0] }, 0] }
       }
     },
     {
@@ -137,7 +137,7 @@ const getTopVideos = async (videoIds, limit = 10) => {
     },
     {
       $addFields: {
-        commentCount: { $arrayElemAt: ['$comments.count', 0] }
+        commentCount: { $ifNull: [{ $arrayElemAt: ['$comments.count', 0] }, 0] }
       }
     },
     {

@@ -1,16 +1,16 @@
 import { useEffect, useRef } from 'react';
 import { io } from 'socket.io-client';
 
-const useSocket = (accessToken) => {
+const useSocket = (userId) => {
   const socketRef = useRef(null);
 
   useEffect(() => {
-    if (!accessToken) return;
+    if (!userId) return;
 
     socketRef.current = io(
       import.meta.env.VITE_API_URL || 'http://localhost:8000',
       {
-        auth: { token: accessToken },   // JWT must be in handshake auth
+        auth: { userId },
         withCredentials: true,
         transports: ['websocket']
       }
@@ -30,7 +30,7 @@ const useSocket = (accessToken) => {
         socketRef.current = null;
       }
     };
-  }, [accessToken]);
+  }, [userId]);
 
   return socketRef.current;
 };

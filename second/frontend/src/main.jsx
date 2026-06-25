@@ -7,7 +7,6 @@ import Home from './components/Home/Home.jsx'
 import Login from './components/Login/Login.jsx'
 import Register from './components/Register/Register.jsx'
 import Layout from '../Layout.jsx'
-import Videos from './components/Videos/Videos.jsx'
 import Upload from './components/Videos/upload.jsx'
 import VideoPlayer from './components/Videos/videoPlayer.jsx'
 import Dashboard from './components/Dashboard/Dashboard.jsx'
@@ -56,21 +55,42 @@ axios.interceptors.response.use(
 const ProtectedRoute = ({ children }) => {
   const [checking, setChecking] = useState(true);
   const [authed, setAuthed] = useState(false);
+  const [error, setError] = useState(null);
   const navigate = useNavigate();
 
   useEffect(() => {
-    axios.get(`${import.meta.env.VITE_API_URL || 'http://localhost:8000'}/api/v1/users/current-user`)
-      .then(() => { 
-        setAuthed(true); 
-        setChecking(false); 
+    axios.get(
+      `${import.meta.env.VITE_API_URL || 'http://localhost:8000'}/api/v1/users/current-user`,
+      { withCredentials: true }
+    )
+      .then(() => {
+        setAuthed(true);
+        setChecking(false);
       })
-      .catch(() => { 
-        setChecking(false); 
-        navigate('/Login'); 
+      .catch((err) => {
+        setChecking(false);
+        if (err.response?.status === 401) {
+          navigate('/Login');
+        } else {
+          setError('Connection error. Please check your internet and try again.');
+        }
       });
   }, [navigate]);
 
   if (checking) return <div className="flex items-center justify-center h-screen">Loading...</div>;
+
+  if (error) return (
+    <div className="flex flex-col items-center justify-center h-screen gap-4">
+      <p className="text-red-400">{error}</p>
+      <button
+        onClick={() => window.location.reload()}
+        className="px-4 py-2 bg-slate-700 text-white rounded-lg"
+      >
+        Retry
+      </button>
+    </div>
+  );
+
   return authed ? children : null;
 };
 
@@ -84,7 +104,6 @@ const router = createBrowserRouter(
         <Route path='feed' element={<Feed />} />
         <Route path='trending' element={<Trending />} />
         <Route path='library' element={<ProtectedRoute><Library /></ProtectedRoute>} />
-        <Route path='getVideos' element={<ProtectedRoute><UserPage /></ProtectedRoute>} />
         <Route path=':id' element={<VideoPlayer />} />
         <Route path='user' element={<ProtectedRoute><UserPage /></ProtectedRoute>} />
         <Route path='ManageAccount' element={<ProtectedRoute><ManageAccount /></ProtectedRoute>} />
