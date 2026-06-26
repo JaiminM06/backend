@@ -5,12 +5,14 @@ import helmet from 'helmet';
 import hpp from 'hpp';
 import { httpLogger } from './utils/httpLogger.js';
 import { logger } from "./utils/logger.js";
+import { generalLimiter } from './middlewares/rateLimiter.middleware.js';
 
 const app = express();
 
 app.use(helmet());      // security headers
 app.use(hpp());         // HTTP parameter pollution protection
 app.use(httpLogger);    // HTTP request logging via pino-http
+app.use('/api/v1', generalLimiter); // Apply general rate limit to all /api/v1 routes
 
 app.use(cors({
     origin: process.env.CORS_ORIGIN || "http://localhost:5173",
