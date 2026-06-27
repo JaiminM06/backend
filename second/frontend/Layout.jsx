@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { Menu, Search, User, Home, Upload, Flame, Tv, Library, X, LogOut, Settings, Twitter, BarChart2 } from "lucide-react";
-import { Outlet, NavLink, useNavigate } from "react-router-dom";
+import { Outlet, NavLink, useNavigate, useLocation } from "react-router-dom";
 import axios from "axios";
 import useSocket from "./src/hooks/useSocket.js";
 import NotificationBell from "./src/components/Notifications/NotificationBell.jsx";
@@ -12,6 +12,8 @@ export default function Layout() {
   const [searchQuery, setSearchQuery] = useState('');
   const [socketToken, setSocketToken] = useState(null);
   const navigate = useNavigate();
+  const location = useLocation();
+  const isTweetsPath = location.pathname.includes('/Home/tweets');
 
   useEffect(() => {
     axios.get(
@@ -47,6 +49,7 @@ export default function Layout() {
 
   const navItems = [
     { to: "/Home/feed", icon: Home, label: "Home" },
+    { to: "/Home/tweets", icon: Twitter, label: "Tweets" },
     { to: "/Home/trending", icon: Flame, label: "Trending" },
     { to: "/Home/library", icon: Library, label: "Library" },
     { to: "/Home/dashboard", icon: BarChart2, label: "Dashboard" },
@@ -181,14 +184,25 @@ export default function Layout() {
 
           {/* Right Actions */}
           <div className="flex items-center gap-2 md:gap-3">
-            <button
-              onClick={() => alert("Twitter mode is coming soon!")}
-              className="flex items-center gap-1.5 md:gap-2 px-3 py-1.5 md:px-4 md:py-2 bg-[#1DA1F2]/10 text-[#1DA1F2] border border-[#1DA1F2]/20 rounded-full hover:bg-[#1DA1F2]/20 transition-all shadow-sm"
-              title="Coming Soon"
-            >
-              <Twitter size={16} className="md:w-4 md:h-4 shrink-0" />
-              <span className="text-xs md:text-sm font-semibold whitespace-nowrap hidden sm:inline-block">Switch to Twitter</span>
-            </button>
+            {isTweetsPath ? (
+              <button
+                onClick={() => navigate('/Home/feed')}
+                className="flex items-center gap-1.5 md:gap-2 px-3 py-1.5 md:px-4 md:py-2 bg-red-600/10 text-red-600 border border-red-600/20 rounded-full hover:bg-red-600/20 transition-all shadow-sm"
+                title="Switch to Videos"
+              >
+                <Tv size={16} className="md:w-4 md:h-4 shrink-0" />
+                <span className="text-xs md:text-sm font-semibold whitespace-nowrap hidden sm:inline-block">Switch to Videos</span>
+              </button>
+            ) : (
+              <button
+                onClick={() => navigate('/Home/tweets')}
+                className="flex items-center gap-1.5 md:gap-2 px-3 py-1.5 md:px-4 md:py-2 bg-[#1DA1F2]/10 text-[#1DA1F2] border border-[#1DA1F2]/20 rounded-full hover:bg-[#1DA1F2]/20 transition-all shadow-sm"
+                title="Switch to Twitter"
+              >
+                <Twitter size={16} className="md:w-4 md:h-4 shrink-0" />
+                <span className="text-xs md:text-sm font-semibold whitespace-nowrap hidden sm:inline-block">Switch to Twitter</span>
+              </button>
+            )}
             
             {/* Real-time Notification Bell */}
             {user && <NotificationBell socket={socket} />}
@@ -218,7 +232,7 @@ export default function Layout() {
 
         {/* Scrollable Content */}
         <main className="flex-1 overflow-y-auto bg-gray-50 scrollbar-thin scrollbar-thumb-slate-300 p-4 md:p-6 lg:p-8">
-          <Outlet />
+          <Outlet context={{ socket, currentUserId: user?._id }} />
         </main>
       </div>
     </div>

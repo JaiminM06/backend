@@ -2,7 +2,8 @@ import { Router } from 'express';
 import {toggleCommentLike,
     toggleTweetLike,
     toggleVideoLike,
-    getLikedVideos} from "../controllers/like.controller.js" 
+    getLikedVideos,
+    getTweetLikeStatus} from "../controllers/like.controller.js" 
 import {verifyJWT} from "../middlewares/auth.middleware.js"
 
 const router = Router();
@@ -19,6 +20,10 @@ router
 router
     .route("/tweet/:tweetId")
     .post(toggleTweetLike);
+
+router
+    .route("/count/t/:tweetId")
+    .get(getTweetLikeStatus);
 
 router
     .route("/videos")

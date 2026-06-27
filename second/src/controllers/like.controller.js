@@ -128,9 +128,24 @@ const getLikedVideos = asyncHandler(async (req, res) => {
         .json(new ApiResponse(200, validLikedVideos, "Fetched all Liked Videos Successfully"))
 })
 
+const getTweetLikeStatus = asyncHandler(async (req, res) => {
+    const { tweetId } = req.params;
+    if (!tweetId || !isValidObjectId(tweetId)) {
+        throw new ApiError(400, "Invalid or missing tweet ID");
+    }
+
+    const count = await Like.countDocuments({ tweet: tweetId });
+    const liked = await Like.exists({ tweet: tweetId, likedBy: req.user._id });
+
+    return res
+        .status(200)
+        .json(new ApiResponse(200, { count, liked: !!liked }, "Tweet like status fetched successfully"));
+});
+
 export {
     toggleCommentLike,
     toggleTweetLike,
     toggleVideoLike,
-    getLikedVideos
+    getLikedVideos,
+    getTweetLikeStatus
 }

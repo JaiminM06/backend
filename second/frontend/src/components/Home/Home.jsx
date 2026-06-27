@@ -1,35 +1,64 @@
-import { NavLink } from "react-router-dom";
-
-
+import React, { useState, useEffect } from "react";
+import axios from "axios";
+import useSocket from "../../hooks/useSocket.js";
+import Feed from "../Videos/feed.jsx";
+import TwitterFeed from "../Tweets/TwitterFeed.jsx";
 
 function Home() {
-  
-  return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-500 to-indigo-700 flex flex-col items-center justify-center text-white">
-      <div className="bg-white text-gray-800 shadow-2xl rounded-2xl p-10 w-full max-w-lg text-center">
-        <h1 className="text-4xl font-bold text-indigo-700 mb-3">🏠 Home Page</h1>
-        <p className="text-gray-600 mb-8">
-          Welcome! Use the links below to navigate.
-        </p>
+  const [activeTab, setActiveTab] = useState('videos'); // 'videos' | 'tweets'
+  const [user, setUser] = useState(null);
+  const [socketToken, setSocketToken] = useState(null);
+  const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:8000';
 
-        <ul className="flex flex-col space-y-4">
-          <li>
-            <NavLink
-              to="/Register"
-              className="block w-full bg-blue-600 text-white py-2 rounded-lg font-semibold hover:bg-blue-700 transition duration-300"
-            >
-              Register
-            </NavLink>
-          </li>
-          <li>
-            <NavLink
-              to="/Login"
-              className="block w-full bg-indigo-600 text-white py-2 rounded-lg font-semibold hover:bg-indigo-700 transition duration-300"
-            >
-              Login
-            </NavLink>
-          </li>
-        </ul>
+  useEffect(() => {
+    axios.get(
+      `${apiUrl}/api/v1/users/current-user`,
+      { withCredentials: true }
+    )
+    .then(res => {
+      setUser(res.data.data);
+      setSocketToken(res.data.data?._id || null);
+    })
+    .catch(() => {
+      setSocketToken(null);
+    });
+  }, [apiUrl]);
+
+  const socket = useSocket(socketToken);
+  const currentUserId = user?._id;
+
+  return (
+    <div className="min-h-screen bg-slate-900 text-slate-100 p-4 md:p-6">
+      <div className="max-w-6xl mx-auto">
+        {/* Tab Buttons */}
+        <div className="flex gap-2 mb-6 justify-center">
+          <button
+            onClick={() => setActiveTab('videos')}
+            className={`px-6 py-2 rounded-full text-sm font-medium transition-colors
+              ${activeTab === 'videos'
+                ? 'bg-red-600 text-white'
+                : 'bg-slate-800 text-slate-300 hover:bg-slate-700'}`}
+          >
+            🎬 Videos
+          </button>
+          <button
+            onClick={() => setActiveTab('tweets')}
+            className={`px-6 py-2 rounded-full text-sm font-medium transition-colors
+              ${activeTab === 'tweets'
+                ? 'bg-blue-600 text-white'
+                : 'bg-slate-800 text-slate-300 hover:bg-slate-700'}`}
+          >
+            🐦 Tweets
+          </button>
+        </div>
+
+        {/* Feed Content */}
+        <div className="mt-4">
+          {activeTab === 'videos' && <Feed />}
+          {activeTab === 'tweets' && (
+            <TwitterFeed socket={socket} currentUserId={currentUserId} />
+          )}
+        </div>
       </div>
     </div>
   );

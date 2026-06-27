@@ -27,14 +27,17 @@ export const indexVideo = async (video) => {
 export const indexTweet = async (tweet) => {
     try {
         const document = {
-            id: tweet._id.toString(),
-            mongoId: tweet._id.toString(),
-            content: tweet.content,
-            hashtags: tweet.hashtags || [],
-            ownerUsername: tweet.owner?.username || "",
-            ownerAvatar: tweet.owner?.avatar || "",
-            views: Number(tweet.views) || 0,
-            createdAt: Math.floor(new Date(tweet.createdAt).getTime() / 1000)
+            id:           tweet._id.toString(),
+            mongoId:      tweet._id.toString(),
+            content:      tweet.content,
+            hashtags:     tweet.hashtags   || [],
+            ownerUsername: tweet.owner?.username || '',
+            ownerAvatar:   tweet.owner?.avatar   || '',
+            views:        tweet.views        || 0,
+            retweetCount: tweet.retweetCount || 0,
+            replyCount:   tweet.replyCount   || 0,
+            isRetweet:    tweet.isRetweet    || false,
+            createdAt:    Math.floor(new Date(tweet.createdAt).getTime() / 1000)
         };
 
         await client.collections("tweets").documents().upsert(document);

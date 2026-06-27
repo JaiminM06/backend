@@ -12,7 +12,7 @@ export const generalLimiter = rateLimit({
 // Strict limiter — auth routes (login, register, refresh)
 export const authLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
-  max: 10,                     // only 10 login attempts per 15 min per IP
+  max: process.env.NODE_ENV === 'test' ? 10 : 200,                    // only 200 login attempts per 15 min per IP (10 for tests)
   standardHeaders: true,
   legacyHeaders: false,
   message: { success: false, message: 'Too many auth attempts, please try again later' }

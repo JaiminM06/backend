@@ -17,6 +17,10 @@ import ManageAccount from './components/UserPage/ManageAccount.jsx'
 import Feed from './components/Videos/feed.jsx'
 import Trending from './components/Videos/Trending.jsx'
 import Library from './components/UserPage/Library.jsx'
+import TweetThread from './components/Tweets/TweetThread.jsx'
+import TwitterFeed from './components/Tweets/TwitterFeed.jsx'
+
+
 
 // Set global axios default for cross-origin credentials (JWT cookies)
 axios.defaults.withCredentials = true;
@@ -110,6 +114,9 @@ const router = createBrowserRouter(
         <Route path='dashboard/video/:videoId' element={<ProtectedRoute><VideoAnalytics /></ProtectedRoute>} />
         <Route path='uploadVideo' element={<ProtectedRoute><Upload /></ProtectedRoute>} />
         <Route path='ManageVideos' element={<ProtectedRoute><ManageVideos /></ProtectedRoute>} />
+        <Route path='tweets/:tweetId' element={<TweetThread />} />
+        <Route path='tweet/:tweetId' element={<TweetThread />} />
+        <Route path='tweets' element={<TwitterFeed />} />
         <Route path=':id' element={<VideoPlayer />} />
       </Route>
     </>
