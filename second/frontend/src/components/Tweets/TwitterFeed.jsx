@@ -136,6 +136,7 @@ export default function TwitterFeed(props) {
             key={tweet._id}
             tweet={tweet}
             currentUserId={currentUserId}
+            variant="light"
             onQuote={(id) => setQuoteTweetId(id)}
             onRetweet={() => {}}
             onReply={() => {}}

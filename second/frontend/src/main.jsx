@@ -1,12 +1,12 @@
 import { StrictMode, useState, useEffect } from 'react'
 import { createRoot } from 'react-dom/client'
 import './index.css'
-import { createBrowserRouter, createRoutesFromElements, Route, RouterProvider, useNavigate } from 'react-router-dom'
+import { createBrowserRouter, createRoutesFromElements, Route, RouterProvider, useNavigate, Navigate } from 'react-router-dom'
 import axios from 'axios'
-import Home from './components/Home/Home.jsx'
 import Login from './components/Login/Login.jsx'
 import Register from './components/Register/Register.jsx'
 import Layout from '../Layout.jsx'
+import TwitterLayout from '../TwitterLayout.jsx'
 import Upload from './components/Videos/upload.jsx'
 import VideoPlayer from './components/Videos/videoPlayer.jsx'
 import Dashboard from './components/Dashboard/Dashboard.jsx'
@@ -101,7 +101,7 @@ const ProtectedRoute = ({ children }) => {
 const router = createBrowserRouter(
   createRoutesFromElements(
     <>
-      <Route path='/' element={<Home />} />
+      <Route path='/' element={<Navigate to="/Home/feed" replace />} />
       <Route path='/Login' element={<Login />} />
       <Route path='/Register' element={<Register />} />
       <Route path='/Home' element={<Layout />}>
@@ -114,11 +114,15 @@ const router = createBrowserRouter(
         <Route path='dashboard/video/:videoId' element={<ProtectedRoute><VideoAnalytics /></ProtectedRoute>} />
         <Route path='uploadVideo' element={<ProtectedRoute><Upload /></ProtectedRoute>} />
         <Route path='ManageVideos' element={<ProtectedRoute><ManageVideos /></ProtectedRoute>} />
-        <Route path='tweets/:tweetId' element={<TweetThread />} />
-        <Route path='tweet/:tweetId' element={<TweetThread />} />
-        <Route path='tweets' element={<TwitterFeed />} />
         <Route path=':id' element={<VideoPlayer />} />
       </Route>
+      {/* Posts live in their own shell — distinct from the video layout */}
+      <Route path='/Home/tweets' element={<TwitterLayout />}>
+        <Route index element={<TwitterFeed />} />
+      </Route>
+      {/* Threads render standalone: their own full-screen page */}
+      <Route path='/Home/tweets/:tweetId' element={<TweetThread />} />
+      <Route path='/Home/tweet/:tweetId' element={<TweetThread />} />
     </>
   )
 )

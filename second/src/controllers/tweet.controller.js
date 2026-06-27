@@ -75,9 +75,32 @@ const getUserTweets = asyncHandler(async (req, res) => {
         .limit(limit)
         .populate('owner', 'username avatar fullName')
         .populate('quoteTweet')
-        .populate({ path: 'originalTweet', populate: { path: 'owner', select: 'username avatar' } }),
+        .populate({ path: 'originalTweet', populate: { path: 'owner', select: 'username avatar' } })
+        .lean(),
       Tweet.countDocuments({ owner: userId, isRetweet: false })
     ]);
+
+    // Batch enrich with like data
+    const currentUserId = req.user?._id;
+    if (tweets.length > 0) {
+      const tweetIds = tweets.map(t => t._id);
+      const [likeCounts, userLikes] = await Promise.all([
+        Like.aggregate([
+          { $match: { tweet: { $in: tweetIds } } },
+          { $group: { _id: '$tweet', count: { $sum: 1 } } }
+        ]),
+        currentUserId
+          ? Like.find({ tweet: { $in: tweetIds }, likedBy: currentUserId }).select('tweet').lean()
+          : []
+      ]);
+      const likeMap = Object.fromEntries(likeCounts.map(l => [l._id.toString(), l.count]));
+      const userLikedSet = new Set(userLikes.map(l => l.tweet.toString()));
+      for (const tw of tweets) {
+        const id = tw._id.toString();
+        tw.likeCount = likeMap[id] || 0;
+        tw.likedByCurrentUser = userLikedSet.has(id);
+      }
+    }
 
     return res.status(200).json(
       new ApiResponse(200, { tweets, total, page, limit }, 'User tweets fetched')
@@ -410,7 +433,8 @@ const getThread = asyncHandler(async (req, res) => {
     const rootTweet = await Tweet.findById(tweetId)
         .populate("owner", "username avatar fullName")
         .populate('quoteTweet')
-        .populate({ path: 'originalTweet', populate: { path: 'owner', select: 'username avatar' } });
+        .populate({ path: 'originalTweet', populate: { path: 'owner', select: 'username avatar' } })
+        .lean();
     if (!rootTweet) {
         throw new ApiError(404, "Root tweet not found");
     }
@@ -421,7 +445,32 @@ const getThread = asyncHandler(async (req, res) => {
         .limit(limit)
         .populate("owner", "username avatar fullName")
         .populate('quoteTweet')
-        .populate({ path: 'originalTweet', populate: { path: 'owner', select: 'username avatar' } });
+        .populate({ path: 'originalTweet', populate: { path: 'owner', select: 'username avatar' } })
+        .lean();
+
+    // Batch enrich all tweets (root + replies) with like data
+    const currentUserId = req.user?._id;
+    const allTweets = [rootTweet, ...replies];
+    const allTweetIds = allTweets.map(t => t._id);
+
+    const [likeCounts, userLikes] = await Promise.all([
+      Like.aggregate([
+        { $match: { tweet: { $in: allTweetIds } } },
+        { $group: { _id: '$tweet', count: { $sum: 1 } } }
+      ]),
+      currentUserId
+        ? Like.find({ tweet: { $in: allTweetIds }, likedBy: currentUserId }).select('tweet').lean()
+        : []
+    ]);
+
+    const likeMap = Object.fromEntries(likeCounts.map(l => [l._id.toString(), l.count]));
+    const userLikedSet = new Set(userLikes.map(l => l.tweet.toString()));
+
+    for (const tw of allTweets) {
+      const id = tw._id.toString();
+      tw.likeCount = likeMap[id] || 0;
+      tw.likedByCurrentUser = userLikedSet.has(id);
+    }
 
     return res
         .status(200)
@@ -442,11 +491,13 @@ const getTweetFeed = asyncHandler(async (req, res) => {
     if (limit < 1) limit = 20;
     if (page < 1) page = 1;
 
+    const userId = req.user?._id || null;
+
     let result;
     if (req.user) {
         result = await getPersonalizedTweetFeed(req.user._id, page, limit);
     } else {
-        result = await getGlobalTweetFeed(page, limit);
+        result = await getGlobalTweetFeed(page, limit, null);
     }
 
     return res

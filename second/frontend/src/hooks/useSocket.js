@@ -1,16 +1,16 @@
 import { useEffect, useState } from 'react';
 import { io } from 'socket.io-client';
 
-const useSocket = (accessToken) => {
+const useSocket = (userId) => {
   const [socket, setSocket] = useState(null);
 
   useEffect(() => {
-    if (!accessToken) return;
+    if (!userId) return;
 
     const newSocket = io(
       import.meta.env.VITE_API_URL || 'http://localhost:8000',
       {
-        auth: { token: accessToken },
+        auth: { userId },
         withCredentials: true,
         transports: ['websocket']
       }
@@ -30,7 +30,7 @@ const useSocket = (accessToken) => {
       newSocket.disconnect();
       setSocket(null);
     };
-  }, [accessToken]);
+  }, [userId]);
 
   return socket;
 };

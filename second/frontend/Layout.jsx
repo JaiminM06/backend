@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Menu, Search, User, Home, Upload, Flame, Tv, Library, X, LogOut, Settings, Twitter, BarChart2 } from "lucide-react";
+import { Menu, Search, User, Home, Upload, Flame, Library, X, Settings, Twitter, BarChart2 } from "lucide-react";
 import { Outlet, NavLink, useNavigate, useLocation } from "react-router-dom";
 import axios from "axios";
 import useSocket from "./src/hooks/useSocket.js";
@@ -12,8 +12,6 @@ export default function Layout() {
   const [searchQuery, setSearchQuery] = useState('');
   const [socketToken, setSocketToken] = useState(null);
   const navigate = useNavigate();
-  const location = useLocation();
-  const isTweetsPath = location.pathname.includes('/Home/tweets');
 
   useEffect(() => {
     axios.get(
@@ -184,26 +182,16 @@ export default function Layout() {
 
           {/* Right Actions */}
           <div className="flex items-center gap-2 md:gap-3">
-            {isTweetsPath ? (
-              <button
-                onClick={() => navigate('/Home/feed')}
-                className="flex items-center gap-1.5 md:gap-2 px-3 py-1.5 md:px-4 md:py-2 bg-red-600/10 text-red-600 border border-red-600/20 rounded-full hover:bg-red-600/20 transition-all shadow-sm"
-                title="Switch to Videos"
-              >
-                <Tv size={16} className="md:w-4 md:h-4 shrink-0" />
-                <span className="text-xs md:text-sm font-semibold whitespace-nowrap hidden sm:inline-block">Switch to Videos</span>
-              </button>
-            ) : (
-              <button
-                onClick={() => navigate('/Home/tweets')}
-                className="flex items-center gap-1.5 md:gap-2 px-3 py-1.5 md:px-4 md:py-2 bg-[#1DA1F2]/10 text-[#1DA1F2] border border-[#1DA1F2]/20 rounded-full hover:bg-[#1DA1F2]/20 transition-all shadow-sm"
-                title="Switch to Twitter"
-              >
-                <Twitter size={16} className="md:w-4 md:h-4 shrink-0" />
-                <span className="text-xs md:text-sm font-semibold whitespace-nowrap hidden sm:inline-block">Switch to Twitter</span>
-              </button>
-            )}
-            
+            {/* The one switch: goes to the Posts layout */}
+            <button
+              onClick={() => navigate('/Home/tweets')}
+              className="flex items-center gap-1.5 md:gap-2 px-3 py-1.5 md:px-4 md:py-2 bg-[#1DA1F2]/10 text-[#1DA1F2] border border-[#1DA1F2]/20 rounded-full hover:bg-[#1DA1F2]/20 transition-all shadow-sm"
+              title="Switch to Posts"
+            >
+              <Twitter size={16} className="md:w-4 md:h-4 shrink-0" />
+              <span className="text-xs md:text-sm font-semibold whitespace-nowrap hidden sm:inline-block">Switch to Posts</span>
+            </button>
+
             {/* Real-time Notification Bell */}
             {user && <NotificationBell socket={socket} />}
 

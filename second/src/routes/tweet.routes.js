@@ -21,7 +21,7 @@ const router = Router();
 // Public / Optional Auth routes
 router.route("/feed").get(optionalAuth, getTweetFeed);
 router.route("/user/:userId").get(optionalAuth, getUserTweets);
-router.route("/:tweetId/thread").get(getThread);
+router.route("/:tweetId/thread").get(optionalAuth, getThread);
 
 // Protected routes
 router.use(verifyJWT); // Apply verifyJWT middleware to all routes below this line
