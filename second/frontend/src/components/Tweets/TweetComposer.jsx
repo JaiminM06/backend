@@ -105,9 +105,13 @@ export default function TweetComposer({ onTweetPosted, parentTweetId, quoteTweet
       }
 
       const res = await axios.post(endpoint, payload, { withCredentials: true });
-      const newTweet = res.data.data;
+      const responseData = res.data.data;
+      const newTweet =
+        responseData?.reply       ||
+        responseData?.quoteTweet  ||
+        responseData?.tweet       ||
+        responseData;
 
-      // On success: call callback, reset form
       if (onTweetPosted) {
         onTweetPosted(newTweet);
       }
@@ -145,7 +149,7 @@ export default function TweetComposer({ onTweetPosted, parentTweetId, quoteTweet
             value={content}
             onChange={(e) => setContent(e.target.value)}
             placeholder={parentTweetId ? "Post your reply" : "What's happening?"}
-            maxLength={350}
+            maxLength={280}
             rows={parentTweetId ? 2 : 3}
             className="w-full bg-transparent border border-slate-200 rounded-lg p-3 text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-transparent resize-none text-sm leading-relaxed"
           />

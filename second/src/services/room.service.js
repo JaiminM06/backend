@@ -1,3 +1,5 @@
+import { logger } from "../utils/logger.js";
+
 export const roomViewers = new Map(); // Map<roomKey (string), Set<socketId (string)>>
 
 export const registerRoomHandlers = (socket, io) => {
@@ -38,6 +40,20 @@ export const registerRoomHandlers = (socket, io) => {
         }
     });
 
+    // --- join_tweet_room ---
+    socket.on('join_tweet_room', ({ tweetId }) => {
+        if (!tweetId) return;
+        socket.join(`tweet-${tweetId}`);
+        logger.info({ tweetId, socketId: socket.id }, 'Client joined tweet room');
+    });
+
+    // --- leave_tweet_room ---
+    socket.on('leave_tweet_room', ({ tweetId }) => {
+        if (!tweetId) return;
+        socket.leave(`tweet-${tweetId}`);
+        logger.info({ tweetId, socketId: socket.id }, 'Client left tweet room');
+    });
+
     // --- typing_comment ---
     socket.on("typing_comment", ({ videoId, username }) => {
         if (!videoId) return;
@@ -62,5 +78,6 @@ export const registerRoomHandlers = (socket, io) => {
                 }
             }
         }
+        logger.info({ socketId: socket.id }, 'Client disconnected');
     });
 };

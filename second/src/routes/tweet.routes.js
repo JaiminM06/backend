@@ -20,6 +20,7 @@ const router = Router();
 
 // Public / Optional Auth routes
 router.route("/feed").get(optionalAuth, getTweetFeed);
+router.route("/user/:userId").get(optionalAuth, getUserTweets);
 router.route("/:tweetId/thread").get(getThread);
 
 // Protected routes
@@ -27,13 +28,13 @@ router.use(verifyJWT); // Apply verifyJWT middleware to all routes below this li
 
 router.route("/").post(validate(createTweetSchema), createTweet);
 router.route("/media/upload-url").post(requestMediaUploadUrl);
-router.route("/user/:userId").get(getUserTweets);
+
 router.route("/:tweetId")
     .patch(validate(updateTweetSchema), updateTweet)
     .delete(deleteTweet);
 
 router.route("/:tweetId/retweet").post(createRetweet);
-router.route("/:tweetId/quote").post(createQuoteTweet);
+router.route("/:tweetId/quote").post(validate(createReplySchema), createQuoteTweet);
 router.route("/:tweetId/reply").post(validate(createReplySchema), createReply);
 
 export default router;

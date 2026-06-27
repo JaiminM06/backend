@@ -16,25 +16,33 @@ export const getGlobalTweetFeed = async (page, limit) => {
             }
         },
         {
+            $lookup: {
+                from: 'likes',
+                let: { tweetId: '$_id' },
+                pipeline: [
+                    { $match: { $expr: { $eq: ['$tweet', '$$tweetId'] } } },
+                    { $count: 'total' }
+                ],
+                as: 'likesStats'
+            }
+        },
+        {
             $addFields: {
+                likeCount: { $ifNull: [{ $arrayElemAt: ['$likesStats.total', 0] }, 0] },
                 engagementScore: {
                     $add: [
                         { $multiply: [{ $ifNull: ['$views', 0] }, 0.1] },
+                        { $multiply: [{ $ifNull: [{ $arrayElemAt: ['$likesStats.total', 0] }, 0] }, 5] },
                         { $multiply: [{ $ifNull: ['$retweetCount', 0] }, 3] },
                         { $multiply: [{ $ifNull: ['$replyCount', 0] }, 2] }
                     ]
                 }
             }
         },
-        {
-            $sort: { engagementScore: -1, createdAt: -1 }
-        },
-        {
-            $skip: skipNum
-        },
-        {
-            $limit: limitNum
-        },
+        { $unset: 'likesStats' },
+        { $sort: { engagementScore: -1, createdAt: -1 } },
+        { $skip: skipNum },
+        { $limit: limitNum },
         {
             $lookup: {
                 from: "users",

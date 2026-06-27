@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
 import { formatTimeAgo } from "../../utils/formatTimeAgo";
@@ -11,30 +11,11 @@ export default function TweetCard({ tweet, currentUserId, onRetweet, onReply, on
   const displayTweet = tweet.isRetweet && tweet.originalTweet ? tweet.originalTweet : tweet;
 
   const [liked, setLiked] = useState(false);
-  const [localLikeCount, setLocalLikeCount] = useState(0);
+  // TODO: include likeCount in feed response to avoid N+1
+  const [localLikeCount, setLocalLikeCount] = useState(tweet.likeCount || 0);
   const [localRetweetCount, setLocalRetweetCount] = useState(displayTweet.retweetCount || 0);
   const [retweeted, setRetweeted] = useState(false);
   const [showReplyComposer, setShowReplyComposer] = useState(false);
-
-  useEffect(() => {
-    const fetchLikeData = async () => {
-      try {
-        const res = await axios.get(
-          `${apiUrl}/api/v1/likes/count/t/${displayTweet._id}`,
-          { withCredentials: true }
-        );
-        if (res.data?.data) {
-          setLocalLikeCount(res.data.data.count || 0);
-          setLiked(!!res.data.data.liked);
-        }
-      } catch (err) {
-        // TODO: GET /api/v1/likes/count/t/:tweetId does not exist yet. Falling back to 0.
-        setLocalLikeCount(0);
-        setLiked(false);
-      }
-    };
-    fetchLikeData();
-  }, [displayTweet._id, apiUrl]);
 
   const handleLike = async (e) => {
     e.stopPropagation();
@@ -94,7 +75,7 @@ export default function TweetCard({ tweet, currentUserId, onRetweet, onReply, on
         return (
           <span
             key={idx}
-            className="text-blue-500 hover:underline cursor-pointer font-medium"
+            className="text-blue-400 hover:underline cursor-pointer font-medium"
             onClick={(e) => {
               e.stopPropagation();
               navigate(`/Home/search?q=${encodeURIComponent(cleanTag)}`);
@@ -108,7 +89,7 @@ export default function TweetCard({ tweet, currentUserId, onRetweet, onReply, on
         return (
           <span
             key={idx}
-            className="text-blue-500 hover:underline cursor-pointer font-medium"
+            className="text-blue-400 hover:underline cursor-pointer font-medium"
             onClick={(e) => {
               e.stopPropagation();
               navigate(`/Home/user/${cleanUser}`);
@@ -132,10 +113,10 @@ export default function TweetCard({ tweet, currentUserId, onRetweet, onReply, on
   return (
     <div 
       onClick={() => navigate(`/Home/tweet/${displayTweet._id}`)}
-      className="bg-white hover:bg-slate-50/50 border-b border-slate-100 p-4 transition-colors cursor-pointer block"
+      className="bg-slate-800 hover:bg-slate-700/50 border-b border-slate-700 p-4 transition-colors cursor-pointer block"
     >
       {tweet.isRetweet && (
-        <div className="flex items-center gap-2 text-xs font-semibold text-slate-500 mb-2 pl-10">
+        <div className="flex items-center gap-2 text-xs font-semibold text-slate-400 mb-2 pl-10">
           <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M4 4v5h.582m15.356 2A8.001 8.001 0 1121.21 6.89M9 11l3 3 3-3" />
           </svg>
@@ -152,7 +133,7 @@ export default function TweetCard({ tweet, currentUserId, onRetweet, onReply, on
           <img 
             src={displayTweet.owner?.avatar || "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=150&h=150"} 
             alt={displayTweet.owner?.username} 
-            className="w-10 h-10 rounded-full object-cover border border-slate-100 hover:opacity-90 transition-opacity" 
+            className="w-10 h-10 rounded-full object-cover border border-slate-600 hover:opacity-90 transition-opacity" 
           />
         </div>
 
@@ -164,22 +145,22 @@ export default function TweetCard({ tweet, currentUserId, onRetweet, onReply, on
                 e.stopPropagation();
                 navigate(`/Home/user/${displayTweet.owner?.username}`);
               }}
-              className="font-bold text-slate-800 hover:underline cursor-pointer"
+              className="font-bold text-white hover:underline cursor-pointer"
             >
               {displayTweet.owner?.fullName || displayTweet.owner?.username}
             </span>
-            <span className="text-slate-500">@{displayTweet.owner?.username}</span>
-            <span className="text-slate-400">·</span>
-            <span className="text-slate-400 text-xs">{formatTimeAgo(displayTweet.createdAt)}</span>
+            <span className="text-slate-400">@{displayTweet.owner?.username}</span>
+            <span className="text-slate-500">·</span>
+            <span className="text-slate-500 text-xs">{formatTimeAgo(displayTweet.createdAt)}</span>
           </div>
 
-          <p className="text-sm text-slate-700 leading-relaxed break-words whitespace-pre-wrap">
+          <p className="text-sm text-slate-200 leading-relaxed break-words whitespace-pre-wrap">
             {renderContent(displayTweet.content)}
           </p>
 
           {/* Media Grid */}
           {media.length > 0 && (
-            <div className={`grid ${gridClass} gap-2 mt-3 rounded-xl overflow-hidden border border-slate-100 aspect-[16/9]`}>
+            <div className={`grid ${gridClass} gap-2 mt-3 rounded-xl overflow-hidden border border-slate-600 aspect-[16/9]`}>
               {media.map((url, idx) => (
                 <img 
                   key={idx} 
@@ -197,16 +178,16 @@ export default function TweetCard({ tweet, currentUserId, onRetweet, onReply, on
           {/* Quote Tweet */}
           {displayTweet.quoteTweet && (
             <div 
-              className="mt-3 p-3 border border-slate-200 rounded-xl hover:bg-slate-100/50 transition-colors cursor-pointer" 
+              className="mt-3 p-3 border border-slate-600 rounded-xl hover:bg-slate-700/50 transition-colors cursor-pointer" 
               onClick={(e) => {
                 e.stopPropagation();
                 navigate(`/Home/tweet/${displayTweet.quoteTweet._id}`);
               }}
             >
-              <div className="flex items-center gap-1.5 text-xs font-bold text-slate-800 mb-1">
+              <div className="flex items-center gap-1.5 text-xs font-bold text-white mb-1">
                 <span>@{displayTweet.quoteTweet.owner?.username || "user"}</span>
               </div>
-              <p className="text-xs text-slate-600 line-clamp-3 leading-relaxed">
+              <p className="text-xs text-slate-300 line-clamp-3 leading-relaxed">
                 {displayTweet.quoteTweet.content?.length > 100 
                   ? `${displayTweet.quoteTweet.content.substring(0, 100)}...` 
                   : displayTweet.quoteTweet.content}
@@ -215,7 +196,7 @@ export default function TweetCard({ tweet, currentUserId, onRetweet, onReply, on
           )}
 
           {/* Action Bar */}
-          <div className="flex items-center justify-between mt-4 max-w-md text-slate-500">
+          <div className="flex items-center justify-between mt-4 max-w-md text-slate-400">
             {/* Reply Button */}
             <button 
               onClick={(e) => {
@@ -224,7 +205,7 @@ export default function TweetCard({ tweet, currentUserId, onRetweet, onReply, on
               }}
               className="flex items-center gap-1.5 group hover:text-blue-500 transition-colors"
             >
-              <span className="p-2 rounded-full group-hover:bg-blue-50 transition-colors">
+              <span className="p-2 rounded-full group-hover:bg-blue-900/30 transition-colors">
                 <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
                 </svg>
@@ -235,9 +216,9 @@ export default function TweetCard({ tweet, currentUserId, onRetweet, onReply, on
             {/* Retweet Button */}
             <button 
               onClick={handleRetweetClick}
-              className={`flex items-center gap-1.5 group transition-colors ${retweeted ? "text-green-600" : "hover:text-green-500"}`}
+              className={`flex items-center gap-1.5 group transition-colors ${retweeted ? "text-green-500" : "hover:text-green-500"}`}
             >
-              <span className={`p-2 rounded-full transition-colors ${retweeted ? "group-hover:bg-green-50" : "group-hover:bg-green-50"}`}>
+              <span className={`p-2 rounded-full transition-colors ${retweeted ? "group-hover:bg-green-900/30" : "group-hover:bg-green-900/30"}`}>
                 <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 1121.21 6.89M9 11l3 3 3-3" />
                 </svg>
@@ -248,11 +229,11 @@ export default function TweetCard({ tweet, currentUserId, onRetweet, onReply, on
             {/* Like Button */}
             <button 
               onClick={handleLike}
-              className={`flex items-center gap-1.5 group transition-colors ${liked ? "text-pink-600" : "hover:text-pink-500"}`}
+              className={`flex items-center gap-1.5 group transition-colors ${liked ? "text-pink-500" : "hover:text-pink-500"}`}
             >
-              <span className="p-2 rounded-full group-hover:bg-pink-50 transition-colors">
+              <span className="p-2 rounded-full group-hover:bg-pink-900/30 transition-colors">
                 {liked ? (
-                  <svg className="w-4 h-4 fill-current text-pink-600" viewBox="0 0 24 24">
+                  <svg className="w-4 h-4 fill-current text-pink-500" viewBox="0 0 24 24">
                     <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z" />
                   </svg>
                 ) : (
@@ -272,7 +253,7 @@ export default function TweetCard({ tweet, currentUserId, onRetweet, onReply, on
               }}
               className="flex items-center gap-1.5 group hover:text-blue-500 transition-colors"
             >
-              <span className="p-2 rounded-full group-hover:bg-blue-50 transition-colors">
+              <span className="p-2 rounded-full group-hover:bg-blue-900/30 transition-colors">
                 <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8.684 10.742l-2.084 1.25m2.084-1.25a2.5 2.5 0 113.536 3.536 2.5 2.5 0 01-3.536-3.536zm8.684 2.516l-2.084-1.25m2.084 1.25a2.5 2.5 0 113.536 3.536 2.5 2.5 0 01-3.536-3.536z" />
                 </svg>
@@ -284,7 +265,7 @@ export default function TweetCard({ tweet, currentUserId, onRetweet, onReply, on
 
       {/* Inline Reply Composer */}
       {showReplyComposer && (
-        <div className="mt-3 pl-12 border-l border-slate-100" onClick={(e) => e.stopPropagation()}>
+        <div className="mt-3 pl-12 border-l border-slate-700" onClick={(e) => e.stopPropagation()}>
           <TweetComposer 
             parentTweetId={displayTweet._id}
             onTweetPosted={handleReplyPosted} 

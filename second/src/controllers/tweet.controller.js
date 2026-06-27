@@ -4,10 +4,11 @@ import {User} from "../models/user.model.js"
 import {ApiError} from "../utils/ApiError.js"
 import {ApiResponse} from "../utils/ApiResponse.js"
 import {asyncHandler} from "../utils/asyncHandler.js"
-import { indexTweet as indexTweetSync, deleteTweet as deleteTweetSync } from "../services/typesenseSync.service.js"
+import { Like } from "../models/like.model.js"
+import { indexTweet as indexTweetSync, deleteTweet as deleteTweetFromTypesense } from "../services/typesenseSync.service.js"
 import { logger } from "../utils/logger.js"
 import crypto from "crypto"
-import { getImageUploadUrl } from "../utils/s3ImageUpload.js"
+import { getImageUploadUrl, deleteImage } from "../utils/s3ImageUpload.js"
 import { getIO } from "../config/socket.js"
 import { sendNotification } from "../services/notification.service.js"
 import { getPersonalizedTweetFeed, getGlobalTweetFeed } from "../services/tweetFeed.service.js"
@@ -62,66 +63,101 @@ const createTweet = asyncHandler(async (req, res) => {
 })
 
 const getUserTweets = asyncHandler(async (req, res) => {
-    // TODO: get user tweets
-    const user= req.params
-    const allTweets= await Tweet.find(
-        {
-            owner:user
-        }
-    )
+    const { userId } = req.params;
+    const page  = parseInt(req.query.page)  || 1;
+    const limit = Math.min(parseInt(req.query.limit) || 20, 50);
+    const skip  = (page - 1) * limit;
 
-    return res
-    .status(200)
-    .json(new ApiResponse(200,allTweets,"Tweets fetched Successfully"))
+    const [tweets, total] = await Promise.all([
+      Tweet.find({ owner: userId, isRetweet: false })
+        .sort({ createdAt: -1 })
+        .skip(skip)
+        .limit(limit)
+        .populate('owner', 'username avatar fullName')
+        .populate('quoteTweet')
+        .populate({ path: 'originalTweet', populate: { path: 'owner', select: 'username avatar' } }),
+      Tweet.countDocuments({ owner: userId, isRetweet: false })
+    ]);
+
+    return res.status(200).json(
+      new ApiResponse(200, { tweets, total, page, limit }, 'User tweets fetched')
+    );
 })
 
 const updateTweet = asyncHandler(async (req, res) => {
-    //TODO: update tweet
-    const {tweetId} = req.params
+    const { tweetId } = req.params;
+    const { content }  = req.body;
 
-    const newContent=req.body.content
-    const updatedContent= await Tweet.findByIdAndUpdate(
-        tweetId,
-        {
-            $set:{
-                content:newContent
-            }
-        },{new:true}
-    
-    )
+    if (!content?.trim()) throw new ApiError(400, 'Content is required');
 
-    // Sync with Typesense (fire and forget)
-    if (updatedContent) {
-        Tweet.findById(updatedContent._id).populate("owner", "username avatar")
-            .then(popTweet => {
-                if (popTweet) indexTweetSync(popTweet);
-            })
-            .catch(err => logger.error({ err }, "Typesense tweet index error on update"));
-    }
+    const tweet = await Tweet.findById(tweetId);
+    if (!tweet) throw new ApiError(404, 'Tweet not found');
 
-    return res
-    .status(200)
-    .json(new ApiResponse(200,updatedContent,"Tweet updated successfully"))
+    if (tweet.owner.toString() !== req.user._id.toString())
+      throw new ApiError(403, 'You are not authorized to update this tweet');
+
+    if (tweet.isRetweet)
+      throw new ApiError(400, 'Cannot edit a retweet');
+
+    tweet.content = content;
+    await tweet.save();
+
+    await tweet.populate('owner', 'username avatar fullName');
+
+    indexTweetSync(tweet).catch(err => logger.error({ err }, 'Typesense sync failed after updateTweet'));
+
+    return res.status(200).json(
+      new ApiResponse(200, tweet, 'Tweet updated successfully')
+    );
 })
 
 const deleteTweet = asyncHandler(async (req, res) => {
-    //TODO: delete tweet
-    const {tweetId} = req.params
-    const deletedTweet = await Tweet.findByIdAndDelete(tweetId)
+    const { tweetId } = req.params;
 
-    // Sync with Typesense (fire and forget)
-    if (deletedTweet) {
-        try {
-            deleteTweetSync(tweetId);
-        } catch (syncError) {
-            logger.error({ err: syncError, tweetId }, "Typesense tweet delete error");
-        }
+    const tweet = await Tweet.findById(tweetId);
+    if (!tweet) throw new ApiError(404, 'Tweet not found');
+
+    if (tweet.owner.toString() !== req.user._id.toString())
+      throw new ApiError(403, 'You are not authorized to delete this tweet');
+
+    await Tweet.findByIdAndDelete(tweetId);
+
+    await Tweet.deleteMany({ parentTweet: tweetId });
+
+    await Tweet.deleteMany({ originalTweet: tweetId });
+
+    await Like.deleteMany({ tweet: tweetId });
+
+    if (tweet.parentTweet) {
+      await Tweet.findByIdAndUpdate(
+        tweet.parentTweet,
+        { $inc: { replyCount: -1 } }
+      );
     }
 
-    return res
-    .status(200)
-    .json(new ApiResponse(200,{},"Tweet deleted successfully"))
+    if (tweet.isRetweet && tweet.originalTweet) {
+      await Tweet.findByIdAndUpdate(
+        tweet.originalTweet,
+        { $inc: { retweetCount: -1 } }
+      );
+    }
 
+    deleteTweetFromTypesense(tweetId).catch(err =>
+      logger.error({ err }, 'Typesense delete failed after deleteTweet')
+    );
+
+    if (tweet.media && tweet.media.length > 0) {
+      tweet.media.forEach(url => {
+        const key = url.replace(`https://${process.env.CLOUDFRONT_DOMAIN}/`, '');
+        deleteImage(key).catch(err =>
+          logger.error({ err }, 'S3 image cleanup failed')
+        );
+      });
+    }
+
+    return res.status(200).json(
+      new ApiResponse(200, {}, 'Tweet deleted successfully')
+    );
 })
 
 const requestMediaUploadUrl = asyncHandler(async (req, res) => {
@@ -185,7 +221,7 @@ const createRetweet = asyncHandler(async (req, res) => {
 
         // Sync with Typesense (fire and forget)
         try {
-            deleteTweetSync(existing._id.toString());
+            deleteTweetFromTypesense(existing._id.toString());
         } catch (syncError) {
             logger.error({ err: syncError, tweetId: existing._id }, "Typesense tweet delete error on un-retweet");
         }
@@ -371,16 +407,21 @@ const getThread = asyncHandler(async (req, res) => {
         throw new ApiError(400, "Invalid tweet ID");
     }
 
-    const rootTweet = await Tweet.findById(tweetId).populate("owner", "username avatar");
+    const rootTweet = await Tweet.findById(tweetId)
+        .populate("owner", "username avatar fullName")
+        .populate('quoteTweet')
+        .populate({ path: 'originalTweet', populate: { path: 'owner', select: 'username avatar' } });
     if (!rootTweet) {
         throw new ApiError(404, "Root tweet not found");
     }
 
-    const replies = await Tweet.find({ parentTweet: tweetId })
+    const replies = await Tweet.find({ parentTweet: tweetId, isRetweet: false })
         .sort({ createdAt: 1 })
         .skip(skip)
         .limit(limit)
-        .populate("owner", "username avatar");
+        .populate("owner", "username avatar fullName")
+        .populate('quoteTweet')
+        .populate({ path: 'originalTweet', populate: { path: 'owner', select: 'username avatar' } });
 
     return res
         .status(200)

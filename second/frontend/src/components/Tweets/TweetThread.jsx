@@ -77,13 +77,18 @@ export default function TweetThread() {
   useEffect(() => {
     if (!socket) return;
 
+    socket.emit('join_tweet_room', { tweetId });
+
     const handleNewReply = (data) => {
-      if (data?.reply && data.reply.parentTweet === tweetId) {
+      if (!data?.reply) return;
+      const parentId = data.reply.parentTweet?._id?.toString()
+        || data.reply.parentTweet?.toString();
+      if (parentId === tweetId) {
         setReplies((prev) => {
           if (prev.some((r) => r._id === data.reply._id)) return prev;
           return [...prev, data.reply];
         });
-        
+
         setRootTweet((prev) => {
           if (!prev) return prev;
           return {
@@ -98,6 +103,7 @@ export default function TweetThread() {
 
     return () => {
       socket.off("new_reply", handleNewReply);
+      socket.emit('leave_tweet_room', { tweetId });
     };
   }, [socket, tweetId]);
 

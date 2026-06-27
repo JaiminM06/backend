@@ -1,38 +1,38 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useState } from 'react';
 import { io } from 'socket.io-client';
 
-const useSocket = (userId) => {
-  const socketRef = useRef(null);
+const useSocket = (accessToken) => {
+  const [socket, setSocket] = useState(null);
 
   useEffect(() => {
-    if (!userId) return;
+    if (!accessToken) return;
 
-    socketRef.current = io(
+    const newSocket = io(
       import.meta.env.VITE_API_URL || 'http://localhost:8000',
       {
-        auth: { userId },
+        auth: { token: accessToken },
         withCredentials: true,
         transports: ['websocket']
       }
     );
 
-    socketRef.current.on('connect', () => {
-      console.log('Socket connected:', socketRef.current.id);
+    newSocket.on('connect', () => {
+      console.log('Socket connected:', newSocket.id);
     });
 
-    socketRef.current.on('connect_error', (err) => {
+    newSocket.on('connect_error', (err) => {
       console.error('Socket connection error:', err.message);
     });
 
-    return () => {
-      if (socketRef.current) {
-        socketRef.current.disconnect();
-        socketRef.current = null;
-      }
-    };
-  }, [userId]);
+    setSocket(newSocket);
 
-  return socketRef.current;
+    return () => {
+      newSocket.disconnect();
+      setSocket(null);
+    };
+  }, [accessToken]);
+
+  return socket;
 };
 
 export default useSocket;
