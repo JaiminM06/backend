@@ -103,7 +103,8 @@ router.route("/feed").get(getInfiniteHomeFeed);
  *               $ref: '#/components/schemas/ApiResponse'
  *   post:
  *     summary: Publish a video
- *     description: Publishes a video with a video file, thumbnail, title, and description.
+ *     description: DEPRECATED. Use /api/v1/upload/request-url instead.
+ *     deprecated: true
  *     tags:
  *       - Videos
  *     security:
@@ -147,20 +148,11 @@ router.route("/feed").get(getInfiniteHomeFeed);
 router
     .route("/")
     .get(getAllVideos)
-    .post(
-        upload.fields([
-            {
-                name: "videoFile",
-                maxCount: 1,
-            },
-            {
-                name: "thumbnail",
-                maxCount: 1,
-            },
-        ]),
-        validate(publishVideoSchema),
-        publishAVideo
-    );
+    // Video upload is handled via S3 presigned URLs:
+    // Step 1: POST /api/v1/upload/request-url
+    // Step 2: PUT directly to S3 (browser → S3, not through this server)
+    // Step 3: POST /api/v1/upload/confirm/:videoId
+    .post(publishAVideo);
 
 /**
  * @openapi

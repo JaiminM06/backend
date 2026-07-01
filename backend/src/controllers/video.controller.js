@@ -38,65 +38,46 @@ const getInfiniteHomeFeed = asyncHandler(async (req, res) => {
 
 
 const getAllVideos = asyncHandler(async (req, res) => {
-    const videos= await Video.find(
-        {
-            owner:req.user._id
-        }
-    ).populate("owner", "username");
-    return res
-    .status(200)
-    .json(new ApiResponse(200,videos,"videos fetched Successfully"))
+    const page   = Math.max(parseInt(req.query.page)  || 1, 1);
+    const limit  = Math.min(parseInt(req.query.limit) || 20, 50);
+    const skip   = (page - 1) * limit;
+    const sortBy = req.query.sortBy || 'createdAt';
+    const sortType = req.query.sortType === 'asc' ? 1 : -1;
+    const query  = req.query.query || '';
 
-})
+    const filter = { owner: req.user._id };
+
+    // Optional search filter by title
+    if (query.trim()) {
+      filter.title = { $regex: query.trim(), $options: 'i' };
+    }
+
+    const [videos, total] = await Promise.all([
+      Video.find(filter)
+        .sort({ [sortBy]: sortType })
+        .skip(skip)
+        .limit(limit)
+        .populate('owner', 'username avatar fullName'),
+      Video.countDocuments(filter)
+    ]);
+
+    return res.status(200).json(
+      new ApiResponse(200, {
+        videos,
+        total,
+        page,
+        limit,
+        totalPages: Math.ceil(total / limit),
+        hasNextPage: page * limit < total
+      }, 'Videos fetched successfully')
+    );
+});
 
 const publishAVideo = asyncHandler(async (req, res) => {
-    const { title, description} = req.body
-    let videoLocalPath;
-    if (req.files && Array.isArray(req.files.videoFile) && req.files.videoFile.length > 0) {
-        videoLocalPath = req.files.videoFile[0].path;
-    }
-    let thumbnailLocalPath;
-    if (req.files && Array.isArray(req.files.thumbnail) && req.files.thumbnail.length > 0) {
-        thumbnailLocalPath = req.files.thumbnail[0].path;
-    }
-    if (!videoLocalPath) {
-        throw new ApiError(401, "video is required")
-    }
-    if (!thumbnailLocalPath) {
-        throw new ApiError(400, "thumbnail is required")
-    }
-
-    const video = await uploadOnCloudinary(videoLocalPath);
-    const thumbnail = await uploadOnCloudinary(thumbnailLocalPath);
-    if(!video){
-        throw new ApiError(400,"video is required")
-    }
-    if(!thumbnail){
-        throw new ApiError(400,"thumbnail is required")
-    }
-    const videoDataset = await Video.create({
-        videoFile:video.url,
-        thumbnail:thumbnail.url,
-        description,
-        duration:video.duration,
-        owner:req.user._id,
-        title
-    })
-    const uploadedVideo = await Video.findById(videoDataset._id)
-    if (!uploadedVideo) {
-        throw new ApiError(500, "something went wrong while uploading video")
-    }
-
-    // Sync with Typesense (fire and forget)
-    Video.findById(uploadedVideo._id).populate("owner", "username avatar")
-        .then(popVideo => {
-            if (popVideo) indexVideoSync(popVideo);
-        })
-        .catch(err => logger.error({ err }, "Typesense index error on publish"));
-
-    return res.status(201).json(
-        new ApiResponse(200, uploadedVideo, "video uploaded  successfully")
-    )
+    throw new ApiError(
+      410,
+      'Direct video upload is deprecated. Use POST /api/v1/upload/request-url to get a presigned S3 URL, then POST /api/v1/upload/confirm/:videoId to start processing.'
+    );
 })
 
 const getVideoById = asyncHandler(async (req, res) => {

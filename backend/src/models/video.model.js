@@ -3,13 +3,12 @@ import mongooseAggregatePaginate from "mongoose-aggregate-paginate-v2"
 const videoSchema =new Schema(
     {
         videoFile:{
-            type:String, //cloudinary url
-            required:true,
-
+            type:String, // HLS manifest url or cloudinary url
+            default: 'pending' // set to HLS manifest URL after processing completes
         },
         thumbnail:{
-            type:String, //cloudinary url
-            required:true,
+            type:String, // CloudFront thumbnail URL or cloudinary url
+            default: 'pending' // set to CloudFront thumbnail URL after processing
         },
         title:{
             type:String,

@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { Outlet, NavLink, useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import axios from "axios";
@@ -8,7 +8,7 @@ import {
 } from "lucide-react";
 import useSocket from "../hooks/useSocket.js";
 import NotificationBell from "../components/Notifications/NotificationBell.jsx";
-import { API_BASE_URL } from "../config/api.js";
+import { useAuth } from "../context/AuthContext.jsx";
 
 const navItems = [
   { to: "/youtube/feed", icon: Home, label: "Home" },
@@ -23,21 +23,11 @@ const navItems = [
 export default function YouTubeLayout() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [isExpanded, setIsExpanded] = useState(true);
-  const [user, setUser] = useState(null);
   const [searchQuery, setSearchQuery] = useState("");
-  const [socketToken, setSocketToken] = useState(null);
   const navigate = useNavigate();
 
-  useEffect(() => {
-    axios
-      .get(`${API_BASE_URL}/api/v1/users/current-user`, { withCredentials: true })
-      .then((res) => {
-        setUser(res.data.data);
-        setSocketToken(res.data.data?._id || null);
-      })
-      .catch(() => setSocketToken(null));
-  }, []);
-
+  const { user } = useAuth();
+  const socketToken = user?._id || null;
   const socket = useSocket(socketToken);
 
   const handleSearch = (e) => {

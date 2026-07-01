@@ -4,6 +4,7 @@ import './index.css'
 import { createBrowserRouter, createRoutesFromElements, Route, RouterProvider, Navigate } from 'react-router-dom'
 import axios from 'axios'
 import { API_BASE_URL } from './config/api.js'
+import { AuthProvider } from './context/AuthContext.jsx'
 
 // Auth pages
 import Login from './components/Login/Login.jsx'
@@ -127,6 +128,8 @@ const router = createBrowserRouter(
 
 createRoot(document.getElementById('root')).render(
   <StrictMode>
-    <RouterProvider router={router} />
+    <AuthProvider>
+      <RouterProvider router={router} />
+    </AuthProvider>
   </StrictMode>,
 )

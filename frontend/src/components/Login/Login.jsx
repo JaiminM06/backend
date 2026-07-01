@@ -3,6 +3,7 @@ import axios from "axios";
 import { useNavigate, Link } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import { Mail, Lock, Eye, EyeOff, Loader2 } from "lucide-react";
+import { useAuth } from "../../context/AuthContext.jsx";
 
 function Login() {
   const [email, setEmail] = useState("");
@@ -11,6 +12,7 @@ function Login() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const navigate = useNavigate();
+  const { login } = useAuth();
 
   const handleLogin = async (e) => {
     e.preventDefault();
@@ -18,11 +20,12 @@ function Login() {
     setError("");
 
     try {
-      await axios.post(
+      const res = await axios.post(
         `${import.meta.env.VITE_API_URL || 'http://localhost:8000'}/api/v1/users/login`,
         { email, password },
         { withCredentials: true }
       );
+      login(res.data.data.user);
       navigate("/youtube/feed");
     } catch (err) {
       setError(err.response?.data?.message || "Invalid credentials. Please try again.");

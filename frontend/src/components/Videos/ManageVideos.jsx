@@ -18,7 +18,7 @@ export default function ManageVideos() {
         `${import.meta.env.VITE_API_URL || "http://localhost:8000"}/api/v1/videos/`,
         { withCredentials: true }
       );
-      setVideos(res.data.data || []);
+      setVideos(res.data.data?.videos || []);
     } catch (error) {
       console.error("Error fetching videos:", error);
     } finally {

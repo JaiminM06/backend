@@ -9,25 +9,33 @@ import { logger } from "../utils/logger.js"
 
 const getVideoComments = asyncHandler(async (req, res) => {
     const { videoId } = req.params;
+    const page  = Math.max(parseInt(req.query.page)  || 1, 1);
+    const limit = Math.min(parseInt(req.query.limit) || 20, 50);
+    const skip  = (page - 1) * limit;
 
-    // Validate ObjectId
     if (!mongoose.Types.ObjectId.isValid(videoId)) {
-        return res.status(400).json({
-            success: false,
-            message: "Invalid video ID",
-        });
+      throw new ApiError(400, 'Invalid video ID');
     }
 
-    // Fetch comments
-    const comments = await Comment.find({ video: videoId })
-        .sort({ createdAt: -1 }) // newest first
-        .populate("owner", "username avatar")
+    const [comments, total] = await Promise.all([
+      Comment.find({ video: videoId })
+        .sort({ createdAt: -1 })
+        .skip(skip)
+        .limit(limit)
+        .populate('owner', 'username avatar fullName'),
+      Comment.countDocuments({ video: videoId })
+    ]);
 
-
-    return res.status(200).json({
-        success: true,
-        data: comments,
-    });
+    return res.status(200).json(
+      new ApiResponse(200, {
+        comments,
+        total,
+        page,
+        limit,
+        totalPages: Math.ceil(total / limit),
+        hasNextPage: page * limit < total
+      }, 'Comments fetched successfully')
+    );
 });
 
 const addComment = asyncHandler(async (req, res) => {

@@ -14,6 +14,41 @@ const mockRedis = {
   once: jest.fn(),
 };
 
+/**
+ * Creates a mock Mongoose query chain that supports .sort().skip().limit().populate() etc.
+ * The returned object is both chainable and then-able (for await).
+ */
+export function createMockQueryChain(resolvedValue = []) {
+  const chain = {
+    sort:     jest.fn().mockReturnThis(),
+    skip:     jest.fn().mockReturnThis(),
+    limit:    jest.fn().mockReturnThis(),
+    populate: jest.fn().mockReturnThis(),
+    select:   jest.fn().mockReturnThis(),
+    lean:     jest.fn().mockReturnThis(),
+    exec:     jest.fn().mockResolvedValue(resolvedValue),
+    distinct: jest.fn().mockResolvedValue(resolvedValue),
+    then(resolve) {
+      return Promise.resolve(resolvedValue).then(resolve);
+    }
+  };
+  return chain;
+}
+
+/**
+ * Creates a reusable mock Express res + next with a completion promise.
+ * The done promise resolves when either res.json() or next() is called,
+ * allowing tests to await controller completion.
+ */
+export function createMockRes() {
+  const res = {};
+  res.status  = jest.fn().mockReturnValue(res);
+  res.json    = jest.fn().mockReturnValue(res);
+  res.cookie  = jest.fn().mockReturnValue(res);
+  res.clearCookie = jest.fn().mockReturnValue(res);
+  return { res, next: jest.fn() };
+}
+
 export async function setupTestMocks(options = {}) {
   jest.unstable_mockModule('ioredis', () => ({
     __esModule: true,
@@ -138,16 +173,8 @@ export async function setupTestMocks(options = {}) {
   jest.unstable_mockModule('../models/watchHistory.model.js', () => ({
     __esModule: true,
     default: {
-      find: jest.fn().mockReturnValue({
-        sort: jest.fn().mockReturnThis(),
-        limit: jest.fn().mockReturnThis(),
-        populate: jest.fn().mockReturnThis(),
-        exec: jest.fn().mockResolvedValue([]),
-        then: (resolve) => resolve([]),
-      }),
-      findOneAndUpdate: jest.fn().mockReturnValue({
-        then: (resolve) => resolve(null),
-      }),
+      find: jest.fn().mockReturnValue(createMockQueryChain([])),
+      findOneAndUpdate: jest.fn().mockReturnValue(createMockQueryChain(null)),
       deleteMany: jest.fn().mockResolvedValue({}),
       aggregate: jest.fn().mockResolvedValue([]),
     }
@@ -155,61 +182,47 @@ export async function setupTestMocks(options = {}) {
 
   jest.unstable_mockModule('../models/like.model.js', () => ({
     Like: {
-      find: jest.fn().mockReturnValue({
-        sort: jest.fn().mockReturnThis(),
-        limit: jest.fn().mockReturnThis(),
-        populate: jest.fn().mockReturnThis(),
-        exec: jest.fn().mockResolvedValue([]),
-        then: (resolve) => resolve([]),
-      }),
+      find: jest.fn().mockReturnValue(createMockQueryChain([])),
       findOne: jest.fn().mockResolvedValue(null),
       create: jest.fn().mockResolvedValue({}),
       findByIdAndDelete: jest.fn().mockResolvedValue(null),
       deleteMany: jest.fn().mockResolvedValue({}),
+      countDocuments: jest.fn().mockResolvedValue(0),
+      exists: jest.fn().mockResolvedValue(false),
+      aggregate: jest.fn().mockResolvedValue([]),
     }
   }));
 
   jest.unstable_mockModule('../models/comment.model.js', () => ({
     Comment: {
-      find: jest.fn().mockResolvedValue([]),
+      find: jest.fn().mockReturnValue(createMockQueryChain([])),
       findById: jest.fn().mockResolvedValue(null),
       create: jest.fn().mockResolvedValue({}),
       findByIdAndDelete: jest.fn().mockResolvedValue(null),
       deleteMany: jest.fn().mockResolvedValue({}),
+      countDocuments: jest.fn().mockResolvedValue(0),
     }
   }));
 
   jest.unstable_mockModule('../models/notification.model.js', () => ({
     __esModule: true,
     default: {
-      find: jest.fn().mockReturnValue({
-        sort: jest.fn().mockReturnThis(),
-        limit: jest.fn().mockReturnThis(),
-        populate: jest.fn().mockReturnThis(),
-        exec: jest.fn().mockResolvedValue([]),
-        then: (resolve) => resolve([]),
-      }),
-      findById: jest.fn().mockReturnValue({
-        populate: jest.fn().mockReturnThis(),
-        exec: jest.fn().mockResolvedValue(null),
-        then: (resolve) => resolve(null),
-      }),
+      find: jest.fn().mockReturnValue(createMockQueryChain([])),
+      findById: jest.fn().mockReturnValue(createMockQueryChain(null)),
       create: jest.fn().mockResolvedValue({}),
-      findByIdAndUpdate: jest.fn().mockReturnValue({
-        exec: jest.fn().mockResolvedValue(null),
-        then: (resolve) => resolve(null),
-      }),
-      updateMany: jest.fn().mockResolvedValue({}),
+      findByIdAndUpdate: jest.fn().mockReturnValue(createMockQueryChain(null)),
+      updateMany: jest.fn().mockResolvedValue({ modifiedCount: 0 }),
       countDocuments: jest.fn().mockResolvedValue(0),
     }
   }));
 
   jest.unstable_mockModule('../models/subscription.model.js', () => ({
     Subscription: {
-      find: jest.fn().mockResolvedValue([]),
+      find: jest.fn().mockReturnValue(createMockQueryChain([])),
       findOne: jest.fn().mockResolvedValue(null),
       create: jest.fn().mockResolvedValue({}),
       deleteOne: jest.fn().mockResolvedValue({}),
+      findByIdAndDelete: jest.fn().mockResolvedValue(null),
       aggregate: jest.fn().mockResolvedValue([]),
       countDocuments: jest.fn().mockResolvedValue(0),
     }
@@ -217,18 +230,25 @@ export async function setupTestMocks(options = {}) {
 
   jest.unstable_mockModule('../models/playlist.model.js', () => ({
     Playlist: {
-      find: jest.fn().mockResolvedValue([]),
+      find: jest.fn().mockReturnValue(createMockQueryChain([])),
       findById: jest.fn().mockResolvedValue(null),
       create: jest.fn().mockResolvedValue({}),
+      findByIdAndUpdate: jest.fn().mockResolvedValue(null),
+      findByIdAndDelete: jest.fn().mockResolvedValue(null),
     }
   }));
 
   jest.unstable_mockModule('../models/tweet.model.js', () => ({
     Tweet: {
-      find: jest.fn().mockResolvedValue([]),
+      find: jest.fn().mockReturnValue(createMockQueryChain([])),
       findById: jest.fn().mockResolvedValue(null),
       create: jest.fn().mockResolvedValue({}),
       aggregate: jest.fn().mockResolvedValue([]),
+      findByIdAndDelete: jest.fn().mockResolvedValue(null),
+      findByIdAndUpdate: jest.fn().mockResolvedValue(null),
+      findOne: jest.fn().mockResolvedValue(null),
+      deleteMany: jest.fn().mockResolvedValue({ deletedCount: 0 }),
+      countDocuments: jest.fn().mockResolvedValue(0),
     }
   }));
 
@@ -282,5 +302,139 @@ export async function setupTestMocks(options = {}) {
   }
 
   const appModule = await import('../app.js');
+
+  const { Video: v } = await import('../models/video.model.js');
+  const { User: u } = await import('../models/user.model.js');
+  sharedVideoModel = v;
+  sharedUserModel = u;
+
   return appModule.app;
+}
+
+export let sharedVideoModel = null;
+export let sharedUserModel = null;
+
+/**
+ * Resets a mock model's find method to return a fresh chainable query.
+ */
+export function resetMockFind(mockModel, resolvedValue = []) {
+  mockModel.find.mockReturnValue(createMockQueryChain(resolvedValue));
+}
+
+/**
+ * Resets all Video model mock methods back to default chainable values.
+ */
+export async function resetVideoMocks() {
+  const { Video } = await import('../models/video.model.js');
+  Video.find.mockReturnValue(createMockQueryChain([]));
+  Video.findById.mockReturnValue(createMockQueryChain(null));
+  Video.findByIdAndUpdate.mockReturnValue(createMockQueryChain(null));
+  Video.findByIdAndDelete.mockResolvedValue(null);
+  Video.findOne.mockResolvedValue(null);
+  Video.create.mockResolvedValue({ _id: 'mock-video-id' });
+  Video.countDocuments.mockResolvedValue(0);
+  Video.exists.mockResolvedValue(false);
+  Video.aggregate.mockResolvedValue([]);
+}
+
+/**
+ * Resets all User model mock methods back to default values.
+ */
+export async function resetUserMocks() {
+  const { User } = await import('../models/user.model.js');
+  User.findOne.mockResolvedValue(null);
+  User.findById.mockReturnValue({
+    select: jest.fn().mockResolvedValue(null),
+    then: (cb) => Promise.resolve(null).then(cb),
+  });
+  User.findByIdAndUpdate.mockReturnValue({
+    select: jest.fn().mockResolvedValue(null),
+    then: (cb) => Promise.resolve(null).then(cb),
+  });
+  User.create.mockResolvedValue({ _id: '507f1f77bcf86cd799439011' });
+  User.aggregate.mockResolvedValue([]);
+  User.countDocuments.mockResolvedValue(0);
+}
+
+/**
+ * Resets all Tweet model mock methods.
+ */
+export async function resetTweetMocks() {
+  const { Tweet } = await import('../models/tweet.model.js');
+  Tweet.find.mockReturnValue(createMockQueryChain([]));
+  Tweet.findById.mockResolvedValue(null);
+  Tweet.create.mockResolvedValue({});
+  Tweet.aggregate.mockResolvedValue([]);
+  Tweet.findByIdAndDelete.mockResolvedValue(null);
+  Tweet.findByIdAndUpdate.mockResolvedValue(null);
+  Tweet.findOne.mockResolvedValue(null);
+  Tweet.deleteMany.mockResolvedValue({ deletedCount: 0 });
+  Tweet.countDocuments.mockResolvedValue(0);
+}
+
+/**
+ * Resets all Comment model mock methods.
+ */
+export async function resetCommentMocks() {
+  const { Comment } = await import('../models/comment.model.js');
+  Comment.find.mockReturnValue(createMockQueryChain([]));
+  Comment.findById.mockResolvedValue(null);
+  Comment.create.mockResolvedValue({});
+  Comment.findByIdAndDelete.mockResolvedValue(null);
+  Comment.deleteMany.mockResolvedValue({});
+  Comment.countDocuments.mockResolvedValue(0);
+}
+
+/**
+ * Resets all Like model mock methods.
+ */
+export async function resetLikeMocks() {
+  const { Like } = await import('../models/like.model.js');
+  Like.find.mockReturnValue(createMockQueryChain([]));
+  Like.findOne.mockResolvedValue(null);
+  Like.create.mockResolvedValue({});
+  Like.findByIdAndDelete.mockResolvedValue(null);
+  Like.deleteMany.mockResolvedValue({});
+  Like.countDocuments.mockResolvedValue(0);
+  Like.exists.mockResolvedValue(false);
+  Like.aggregate.mockResolvedValue([]);
+}
+
+/**
+ * Resets all Playlist model mock methods.
+ */
+export async function resetPlaylistMocks() {
+  const { Playlist } = await import('../models/playlist.model.js');
+  Playlist.find.mockReturnValue(createMockQueryChain([]));
+  Playlist.findById.mockResolvedValue(null);
+  Playlist.create.mockResolvedValue({});
+  Playlist.findByIdAndUpdate.mockResolvedValue(null);
+  Playlist.findByIdAndDelete.mockResolvedValue(null);
+}
+
+/**
+ * Resets all Subscription model mock methods.
+ */
+export async function resetSubscriptionMocks() {
+  const { Subscription } = await import('../models/subscription.model.js');
+  Subscription.find.mockReturnValue(createMockQueryChain([]));
+  Subscription.findOne.mockResolvedValue(null);
+  Subscription.create.mockResolvedValue({});
+  Subscription.deleteOne.mockResolvedValue({});
+  Subscription.findByIdAndDelete.mockResolvedValue(null);
+  Subscription.aggregate.mockResolvedValue([]);
+  Subscription.countDocuments.mockResolvedValue(0);
+}
+
+/**
+ * Resets all Notification model mock methods.
+ */
+export async function resetNotificationMocks() {
+  const { default: Notification } = await import('../models/notification.model.js');
+  Notification.find.mockReturnValue(createMockQueryChain([]));
+  Notification.findById.mockReturnValue(createMockQueryChain(null));
+  Notification.create.mockResolvedValue({});
+  Notification.findByIdAndUpdate.mockReturnValue(createMockQueryChain(null));
+  Notification.updateMany.mockResolvedValue({ modifiedCount: 0 });
+  Notification.countDocuments.mockResolvedValue(0);
 }

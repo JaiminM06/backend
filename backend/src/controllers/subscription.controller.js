@@ -65,31 +65,57 @@ const toggleSubscription = asyncHandler(async (req, res) => {
 
 // controller to return subscriber list of a channel
 const getUserChannelSubscribers = asyncHandler(async (req, res) => {
-    const {channelId} = req.params
-    const subscriberList= await Subscription.find(
-        {
-            channel:new mongoose.Types.ObjectId(channelId)
-        }
-    )
+    const { channelId } = req.params;
+    const page  = Math.max(parseInt(req.query.page)  || 1, 1);
+    const limit = Math.min(parseInt(req.query.limit) || 20, 50);
+    const skip  = (page - 1) * limit;
 
-    return res
-    .status(200)
-    .json(new ApiResponse(200,subscriberList,"Subscriber list fetched Successfully"))
-})
+    const [subscribers, total] = await Promise.all([
+      Subscription.find({ channel: channelId })
+        .sort({ createdAt: -1 })
+        .skip(skip)
+        .limit(limit)
+        .populate('subscriber', 'username avatar fullName'),
+      Subscription.countDocuments({ channel: channelId })
+    ]);
+
+    return res.status(200).json(
+      new ApiResponse(200, {
+        subscribers: subscribers.map(s => s.subscriber),
+        total,
+        page,
+        limit,
+        totalPages: Math.ceil(total / limit)
+      }, 'Subscribers fetched successfully')
+    );
+});
 
 // controller to return channel list to which user has subscribed
 const getSubscribedChannels = asyncHandler(async (req, res) => {
-    const { subscriberId } = req.params
-    const subscribedChannel= await Subscription.find(
-        {
-            subscriber:subscriberId
-        }
-    )
-    return res
-    .status(200)
-    .json(new ApiResponse(200,subscribedChannel,"Subscribed List fetched Successfully"))
+    const { subscriberId } = req.params;
+    const page  = Math.max(parseInt(req.query.page)  || 1, 1);
+    const limit = Math.min(parseInt(req.query.limit) || 20, 50);
+    const skip  = (page - 1) * limit;
 
-})
+    const [subscriptions, total] = await Promise.all([
+      Subscription.find({ subscriber: subscriberId })
+        .sort({ createdAt: -1 })
+        .skip(skip)
+        .limit(limit)
+        .populate('channel', 'username avatar fullName'),
+      Subscription.countDocuments({ subscriber: subscriberId })
+    ]);
+
+    return res.status(200).json(
+      new ApiResponse(200, {
+        channels: subscriptions.map(s => s.channel),
+        total,
+        page,
+        limit,
+        totalPages: Math.ceil(total / limit)
+      }, 'Subscribed channels fetched successfully')
+    );
+});
 
 export {
     toggleSubscription,

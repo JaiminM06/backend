@@ -57,7 +57,7 @@ function UserPage() {
             withCredentials: true
           }
         );
-        setVideos(videosRes.data.data || []);
+        setVideos(videosRes.data.data?.videos || []);
       } catch (err) {
         console.error("Error loading user page:", err);
       } finally {

@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { Outlet, NavLink, useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import axios from "axios";
@@ -9,7 +9,7 @@ import {
 import useSocket from "../hooks/useSocket.js";
 import NotificationBell from "../components/Notifications/NotificationBell.jsx";
 import TweetComposer from "../components/Tweets/TweetComposer.jsx";
-import { API_BASE_URL } from "../config/api.js";
+import { useAuth } from "../context/AuthContext.jsx";
 
 const navItems = [
   { to: "/twitter/home", icon: Home, label: "Home" },
@@ -19,22 +19,12 @@ const navItems = [
 ];
 
 export default function TwitterLayout() {
-  const [user, setUser] = useState(null);
-  const [socketToken, setSocketToken] = useState(null);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [showComposer, setShowComposer] = useState(false);
   const navigate = useNavigate();
 
-  useEffect(() => {
-    axios
-      .get(`${API_BASE_URL}/api/v1/users/current-user`, { withCredentials: true })
-      .then((res) => {
-        setUser(res.data.data);
-        setSocketToken(res.data.data?._id || null);
-      })
-      .catch(() => setSocketToken(null));
-  }, []);
-
+  const { user } = useAuth();
+  const socketToken = user?._id || null;
   const socket = useSocket(socketToken);
 
   return (

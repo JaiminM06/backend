@@ -146,7 +146,7 @@ export default function VideoPlayer() {
           `${import.meta.env.VITE_API_URL || 'http://localhost:8000'}/api/v1/subscriptions/u/${video.owner._id}`,
           { withCredentials: true }
         );
-        setSubscribers(subRes.data.data.length);
+        setSubscribers(subRes.data.data?.total || 0);
       } catch (error) {
         console.error("Error fetching user data:", error);
       }
@@ -162,7 +162,7 @@ export default function VideoPlayer() {
           `${import.meta.env.VITE_API_URL || 'http://localhost:8000'}/api/v1/comments/${id}`,
           { withCredentials: true }
         );
-        setComments(Array.isArray(res.data.data) ? res.data.data : []);
+        setComments(res.data.data?.comments || []);
       } catch (error) {
         console.error("Error fetching comments:", error);
       }
