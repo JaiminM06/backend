@@ -13,7 +13,9 @@
     "dev": "concurrently \"npm run dev:backend\" \"npm run dev:frontend\"",
     "lint:backend": "npm run lint --prefix backend",
     "lint:frontend": "npm run lint --prefix frontend",
-    "test:backend": "npm run test --prefix backend"
+    "lint": "npm run lint:backend",
+    "test:backend": "npm run test --prefix backend",
+    "test": "npm run test:backend"
   },
   "devDependencies": {
     "concurrently": "^8.2.2"
