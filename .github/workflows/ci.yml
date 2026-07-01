@@ -70,6 +70,9 @@ jobs:
             -e MONGODB_URI=mongodb://localhost:27017/test \
             -e ACCESS_TOKEN_SECRET=test_access_token_secret_for_ci \
             -e REFRESH_TOKEN_SECRET=test_refresh_token_secret_for_ci \
+            -e ACCESS_TOKEN_EXPIRY=1d \
+            -e REFRESH_TOKEN_EXPIRY=10d \
+            -e PORT=8000 \
             -e REDIS_URL=redis://localhost:6379 \
             -p 8000:8000 \
             mediaverse-api
